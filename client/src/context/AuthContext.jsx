@@ -131,15 +131,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, phone, countryCode, password, role) => {
+  const register = async (name, email, phone, password, role) => {
     try {
-      // Combine country code with phone
-      const phoneNumber = countryCode + phone.replace(/\D/g, '');
-      
       const res = await api.post('/auth/register', { 
         name, 
         email, 
-        phone: phoneNumber,
+        phone,
         password, 
         role 
       });

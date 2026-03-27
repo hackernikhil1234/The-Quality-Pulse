@@ -119,16 +119,16 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      await login(formData.identifier, formData.password);
-      toast.success('Welcome back!');
-      navigate('/dashboard');
+      const result = await login(formData.identifier, formData.password);
+      if (result.success) {
+        toast.success('Welcome back!');
+        navigate('/dashboard');
+      } else {
+        toast.error(result.message || 'Invalid credentials.');
+      }
     } catch (err) {
       console.error('Login error:', err);
-      if (err.response?.status === 401) {
-        toast.error('Invalid credentials.');
-      } else {
-        toast.error('Login failed. Please try again.');
-      }
+      toast.error('Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
