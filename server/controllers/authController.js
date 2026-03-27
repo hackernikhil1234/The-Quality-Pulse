@@ -110,11 +110,7 @@ const loginUser = async (req, res) => {
 
 const getMe = async (req, res) => {
   try {
-    const token = req.cookies.jwt;
-    if (!token) return res.status(401).json({ message: 'Not authorized' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecret123');
-    const user = await User.findById(decoded.id).select('-password');
+    const user = req.user;
     if (!user) return res.status(401).json({ message: 'User not found' });
 
     res.json({
