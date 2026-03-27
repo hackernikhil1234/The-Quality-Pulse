@@ -37,7 +37,7 @@ export default function ReportReview() {
     
     // If it starts with /uploads, prepend the backend URL
     if (imageUrl.startsWith('/uploads/')) {
-        return `http://localhost:5000${imageUrl}`;
+        return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
     }
     
     // Otherwise return as is (could be a data URL or other format)
