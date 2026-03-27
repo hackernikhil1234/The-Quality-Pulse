@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
-import axios from 'axios';
+import api from '../services/api';
 import { 
   FaBell,
   FaEnvelope,
@@ -43,10 +43,7 @@ export default function Notifications() {
     try {
       setLoading(true);
       setError('');
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/notifications/user/${user._id}`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
+      const response = await api.get(`/notifications/user/${user._id}`);
       setNotifications(response.data);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -61,10 +58,7 @@ export default function Notifications() {
     if (!notificationId) return;
     
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`/api/notifications/${notificationId}/read`, {}, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
+      await api.put(`/notifications/${notificationId}/read`);
       
       setNotifications(prev =>
         prev.map(n =>
@@ -83,10 +77,7 @@ export default function Notifications() {
 
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`/api/notifications/user/${user._id}/mark-all-read`, {}, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
+      await api.put(`/notifications/user/${user._id}/mark-all-read`);
       
       setNotifications(prev =>
         prev.map(n => ({ ...n, read: true }))
@@ -118,10 +109,7 @@ export default function Notifications() {
     if (!notificationToDelete?._id) return;
     
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`/api/notifications/${notificationToDelete._id}`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
+      await api.delete(`/notifications/${notificationToDelete._id}`);
       
       setNotifications(prev => prev.filter(n => n._id !== notificationToDelete._id));
       setShowDeleteConfirm(false);
@@ -140,10 +128,7 @@ export default function Notifications() {
     }
     
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`/api/notifications/user/${user._id}/clear-all`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
+      await api.delete(`/notifications/user/${user._id}/clear-all`);
       
       setNotifications([]);
     } catch (error) {

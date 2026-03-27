@@ -1,7 +1,7 @@
 // client/src/components/NotificationBell.jsx - FIXED NAVIGATION
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { FaBell, FaEnvelope, FaCheckCircle, FaRedo } from 'react-icons/fa';
 
@@ -35,10 +35,8 @@ export default function NotificationBell() {
     
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/notifications/user/${user._id}`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
+      // api instance automatically adds Authorization header and baseURL
+      const response = await api.get(`/notifications/user/${user._id}`);
       
       setNotifications(response.data);
     } catch (error) {
@@ -52,10 +50,7 @@ export default function NotificationBell() {
     if (!notificationId) return;
     
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`/api/notifications/${notificationId}/read`, {}, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
+      await api.put(`/notifications/${notificationId}/read`);
       
       setNotifications(prev =>
         prev.map(n =>
@@ -76,10 +71,7 @@ export default function NotificationBell() {
     if (notifications.length === 0) return;
     
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`/api/notifications/user/${user._id}/mark-all-read`, {}, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
+      await api.put(`/notifications/user/${user._id}/mark-all-read`);
       
       setNotifications(prev =>
         prev.map(n => ({ ...n, read: true }))
