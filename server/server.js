@@ -17,7 +17,7 @@ const server = http.createServer(app);
 // Enhanced Socket.IO configuration
 const io = socketIo(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: function(origin, callback) { callback(null, true); },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -63,7 +63,7 @@ io.use((socket, next) => {
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: function(origin, callback) { callback(null, true); },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
