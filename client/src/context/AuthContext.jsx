@@ -1,5 +1,6 @@
 // context/AuthContext.jsx - FIXED
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 export const AuthContext = createContext();
@@ -10,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -174,7 +176,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   const updateUser = (updatedUser) => {
