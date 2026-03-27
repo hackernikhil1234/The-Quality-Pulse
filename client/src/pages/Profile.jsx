@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
+import TwoFactorSettings from '../components/TwoFactorSettings';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -950,6 +951,9 @@ export default function Profile() {
                   </div>
                 </div>
               </div>
+
+              {/* Security: 2FA Settings */}
+              <TwoFactorSettings user={displayUser} />
 
               {/* Account Info */}
               <div className="p-6 transition-all duration-300

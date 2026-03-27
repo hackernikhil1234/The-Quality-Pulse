@@ -1,10 +1,13 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const emailService = require('../services/emailService');
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'supersecret123', { expiresIn: '30d' });
-};
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecret123';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh_supersecret_123';
+
+const generateToken = (id) => jwt.sign({ id }, JWT_SECRET, { expiresIn: '15m' });
+const generateRefreshToken = (id) => jwt.sign({ id }, JWT_REFRESH_SECRET, { expiresIn: '30d' });
 
 // controllers/authController.js
 const registerUser = async (req, res) => {
@@ -39,23 +42,21 @@ const registerUser = async (req, res) => {
       role: role || 'Engineer'
     });
 
-    // Generate token
+    // Generate tokens
     const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
 
-    // Set cookie
-    res.cookie('jwt', token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true, secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
+    // Send welcome email (non-blocking)
+    emailService.sendWelcomeEmail({ name: user.name, email: user.email, role: user.role })
+      .catch(e => console.error('Welcome email failed (non-critical):', e.message));
+
     res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      token: token  // Add this line
+      _id: user._id, name: user.name, email: user.email, role: user.role, token
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -80,25 +81,22 @@ const loginUser = async (req, res) => {
     });
 
     if (user && (await bcrypt.compare(password, user.password))) {
+      // Update lastLogin timestamp
+      user.lastLogin = new Date();
+      await user.save({ validateBeforeSave: false });
+
       const token = generateToken(user._id);
+      const refreshToken = generateRefreshToken(user._id);
       
-      // Set cookie (for traditional auth)
-      res.cookie('jwt', token, { 
-        httpOnly: true, 
-        secure: false, 
-        sameSite: 'lax', 
-        maxAge: 7 * 24 * 60 * 60 * 1000 
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true, secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000
       });
       
-      // ALSO send token in response body (for frontend localStorage)
       res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        countryCode: user.countryCode,
-        role: user.role,
-        token: token  // Add this line
+        _id: user._id, name: user.name, email: user.email,
+        phone: user.phone, countryCode: user.countryCode,
+        role: user.role, token
       });
     } else {
       res.status(401).json({ message: 'Invalid credentials' });

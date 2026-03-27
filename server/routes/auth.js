@@ -1,11 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const { protect, authorize } = require('../middleware/auth'); // Make sure authorize is imported
+const jwt = require('jsonwebtoken');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
+const { protect, authorize } = require('../middleware/auth');
 const User = require('../models/User');
 const NotificationService = require('../services/notificationService');
 const validateRequest = require('../middleware/validateRequest');
 const { registerSchema, loginSchema } = require('../schemas');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecret123';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh_supersecret_123';
 
 // Import your existing controllers
 const { registerUser, loginUser, getMe } = require('../controllers/authController');
@@ -14,6 +20,95 @@ const { registerUser, loginUser, getMe } = require('../controllers/authControlle
 router.post('/register', validateRequest(registerSchema), registerUser);
 router.post('/login', validateRequest(loginSchema), loginUser);
 router.get('/me', protect, getMe);
+
+// ─── Feature 2: JWT Refresh Token ───────────────────────────────────────
+router.post('/refresh-token', (req, res) => {
+  const token = req.cookies?.refreshToken;
+  if (!token) return res.status(401).json({ message: 'No refresh token provided' });
+  try {
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
+    const newAccessToken = jwt.sign({ id: decoded.id }, JWT_SECRET, { expiresIn: '15m' });
+    res.json({ token: newAccessToken });
+  } catch (err) {
+    return res.status(403).json({ message: 'Invalid or expired refresh token. Please log in again.' });
+  }
+});
+
+// ─── Feature 6: Two-Factor Authentication (2FA) ─────────────────────────
+// Step 1: Generate 2FA Secret + QR Code
+router.post('/2fa/setup', protect, async (req, res) => {
+  try {
+    const secret = speakeasy.generateSecret({ name: `QualityPulse (${req.user.email})`, length: 20 });
+    // Store temp secret on user until they verify
+    await User.findByIdAndUpdate(req.user._id, { twoFactorTempSecret: secret.base32 });
+    const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url);
+    res.json({ qrCode: qrCodeDataUrl, secret: secret.base32 });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to setup 2FA' });
+  }
+});
+
+// Step 2: Verify OTP and activate 2FA
+router.post('/2fa/verify', protect, async (req, res) => {
+  try {
+    const { token } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user.twoFactorTempSecret) return res.status(400).json({ message: '2FA setup not initiated' });
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorTempSecret,
+      encoding: 'base32',
+      token,
+      window: 2
+    });
+    if (!verified) return res.status(400).json({ message: 'Invalid OTP code. Please try again.' });
+
+    await User.findByIdAndUpdate(req.user._id, {
+      twoFactorSecret: user.twoFactorTempSecret,
+      twoFactorEnabled: true,
+      twoFactorTempSecret: null
+    });
+    res.json({ success: true, message: '2FA enabled successfully!' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to verify 2FA' });
+  }
+});
+
+// Step 3: Disable 2FA
+router.post('/2fa/disable', protect, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, {
+      twoFactorSecret: null, twoFactorEnabled: false, twoFactorTempSecret: null
+    });
+    res.json({ success: true, message: '2FA disabled.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to disable 2FA' });
+  }
+});
+
+// Step 4: Validate 2FA token during login
+router.post('/2fa/validate', async (req, res) => {
+  try {
+    const { userId, token } = req.body;
+    const user = await User.findById(userId);
+    if (!user || !user.twoFactorEnabled) return res.status(400).json({ message: 'Invalid request' });
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token,
+      window: 2
+    });
+    if (!verified) return res.status(401).json({ message: 'Invalid 2FA code' });
+
+    const accessToken = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '15m' });
+    const refreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, { expiresIn: '30d' });
+    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    res.json({ token: accessToken, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to validate 2FA' });
+  }
+});
 
 // Get users by role (for assigning engineers)
 router.get('/users', protect, async (req, res) => {

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const NotificationService = require('../services/notificationService');
+const emailService = require('../services/emailService');
 const { protect, authorize } = require('../middleware/auth');
 const validateRequest = require('../middleware/validateRequest');
 const { createReportSchema, updateReportStatusSchema } = require('../schemas');
@@ -151,13 +152,34 @@ router.get('/', async (req, res) => {
       query.status = req.query.status;
     }
     
-    const reports = await Report.find(query)
-      .populate('site', 'name location')
-      .populate('inspector', 'name email')
-      .populate('reviewedBy', 'name')
-      .sort({ createdAt: -1 });
+    // Feature: Search & Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    if (req.query.search) {
+      query.$or = [
+        { title: { $regex: req.query.search, $options: 'i' } },
+        { materialTested: { $regex: req.query.search, $options: 'i' } },
+        { description: { $regex: req.query.search, $options: 'i' } },
+      ];
+    }
+
+    const [reports, total] = await Promise.all([
+      Report.find(query)
+        .populate('site', 'name location')
+        .populate('inspector', 'name email')
+        .populate('reviewedBy', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Report.countDocuments(query)
+    ]);
     
-    res.json(reports);
+    res.json({
+      reports,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
   } catch (error) {
     console.error('Error fetching reports:', error);
     res.status(500).json({ message: 'Failed to fetch reports' });
@@ -212,11 +234,24 @@ router.put('/:id/status', authorize('Admin'), validateRequest(updateReportStatus
     
     await report.save();
 
-    // Notify engineer about review
+    // Notify engineer about review (in-app + email)
     try {
       const io = req.app.get('io');
       await NotificationService.notifyReportReviewed(report._id, status.toLowerCase(), req.user._id, io);
-      console.log('Engineer notification sent');
+      // Fire email notification (non-blocking)
+      const populatedReport = await Report.findById(report._id)
+        .populate('inspector', 'name email')
+        .populate('site', 'name');
+      if (populatedReport?.inspector?.email) {
+        emailService.sendReportReviewedEmail({
+          engineerEmail: populatedReport.inspector.email,
+          engineerName: populatedReport.inspector.name,
+          reportTitle: report.title,
+          siteName: populatedReport.site?.name,
+          status,
+          reviewComment,
+        }).catch(err => console.error('Email send failed (non-critical):', err.message));
+      }
     } catch (notifyError) {
       console.error('Failed to send notification:', notifyError);
     }

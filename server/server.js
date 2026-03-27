@@ -18,6 +18,41 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 
+// Feature: Swagger Documentation
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+
+// Feature: Sentry Error Monitoring
+const Sentry = require('@sentry/node');
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 0.2,
+  });
+  logger.info('Sentry error monitoring initialized');
+}
+
+// Swagger specification
+const swaggerSpec = swaggerJsdoc({
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Quality Pulse API',
+      version: '1.0.0',
+      description: 'Construction Quality Assurance Management Platform REST API',
+    },
+    servers: [{ url: '/api', description: 'API Server' }],
+    components: {
+      securitySchemes: {
+        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
+      }
+    },
+    security: [{ bearerAuth: [] }],
+  },
+  apis: ['./routes/*.js'],
+});
+
 // Handle uncaught exceptions synchronously
 process.on('uncaughtException', err => {
   logger.error('UNCAUGHT EXCEPTION! 💥 Shutting down...', { error: err.stack });
@@ -128,6 +163,13 @@ app.use('/api/activities', require('./routes/audit'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+// Feature: Swagger UI (Interactive API Docs)
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { background: #0f172a; } .swagger-ui .topbar-wrapper img { display: none; }',
+  customSiteTitle: 'Quality Pulse API Docs',
+}));
+app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/test', require('./routes/test'));
 app.use('/api/debug', require('./routes/debug'));

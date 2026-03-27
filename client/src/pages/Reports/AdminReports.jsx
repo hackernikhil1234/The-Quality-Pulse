@@ -47,12 +47,13 @@ export default function AdminReports() {
     try {
       console.log('AdminReports - Fetching reports for site:', siteId);
       const res = await api.get(`/reports?site=${siteId}`);
-      console.log('Fetched reports:', res.data);
-      setReports(res.data || []);
+      // Handle both array and paginated response formats
+      const data = Array.isArray(res.data) ? res.data : (res.data?.reports || []);
+      setReports(data);
       
       // Auto-select first report if available
-      if (res.data && res.data.length > 0) {
-        setSelectedReport(res.data[0]);
+      if (data.length > 0) {
+        setSelectedReport(data[0]);
       }
     } catch (error) {
       console.error('Error fetching reports:', error);

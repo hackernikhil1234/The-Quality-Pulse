@@ -10,6 +10,10 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['Admin', 'Engineer'], default: 'Engineer' },
   avatar: { type: String, default: '' },
   isActive: { type: Boolean, default: true },
+  // 2FA fields
+  twoFactorEnabled: { type: Boolean, default: false },
+  twoFactorSecret: { type: String, default: null },
+  twoFactorTempSecret: { type: String, default: null },
   deactivationInfo: {
       reason: String,
       deactivatedBy: {
