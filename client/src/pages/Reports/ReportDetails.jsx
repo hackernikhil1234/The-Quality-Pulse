@@ -5,7 +5,9 @@ import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiArrowLeft } from 'react-icons/fi';
+import { FiArrowLeft, FiDownload, FiFileText } from 'react-icons/fi';
+import { jsPDF } from 'jspdf';
+import * as XLSX from 'xlsx';
 
 export default function ReportDetails() {
   const { id } = useParams();
@@ -68,6 +70,163 @@ export default function ReportDetails() {
       navigate('/reports');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Phase 3: PDF Export
+  const exportPDF = () => {
+    if (!report) return;
+    try {
+      const doc = new jsPDF();
+      const siteName = report.site?.name || 'Unknown Site';
+      const engineerName = report.inspector?.name || 'Unknown Engineer';
+
+      // Header
+      doc.setFillColor(15, 23, 42); // slate-900
+      doc.rect(0, 0, 210, 32, 'F');
+      doc.setTextColor(234, 179, 8); // yellow-500
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text('QUALITY PULSE', 14, 13);
+      doc.setFontSize(10);
+      doc.setTextColor(200, 200, 200);
+      doc.text('Construction QA Report', 14, 22);
+      doc.setFontSize(9);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 140, 22);
+
+      // Report Title
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(report.title || 'Untitled Report', 14, 45);
+
+      // Status badge area
+      const statusColor = report.status === 'Approved' ? [22, 163, 74] : report.status === 'Rejected' ? [220, 38, 38] : [202, 138, 4];
+      doc.setFillColor(...statusColor);
+      doc.roundedRect(14, 50, 40, 8, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.text(report.status || 'Pending', 18, 56);
+
+      // Metadata table
+      doc.setTextColor(15, 23, 42);
+      let y = 70;
+      const fields = [
+        ['Site', siteName],
+        ['Engineer', engineerName],
+        ['Material Tested', report.materialTested || 'N/A'],
+        ['Test Result', report.testResult || 'N/A'],
+        ['Compliance Status', report.complianceStatus || 'N/A'],
+        ['Inspection Date', new Date(report.createdAt).toLocaleDateString()],
+      ];
+      if (report.location?.lat) fields.push(['GPS Location', `${report.location.lat}, ${report.location.lng}`]);
+
+      doc.setFontSize(9);
+      fields.forEach(([label, value], i) => {
+        if (i % 2 === 0) doc.setFillColor(248, 250, 252);
+        else doc.setFillColor(255, 255, 255);
+        doc.rect(14, y - 4, 182, 9, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(71, 85, 105);
+        doc.text(label + ':', 16, y + 2);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(15, 23, 42);
+        doc.text(String(value), 80, y + 2);
+        y += 9;
+      });
+
+      // Sections
+      const addSection = (title, content) => {
+        if (!content) return;
+        y += 6;
+        if (y > 260) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(79, 70, 229);
+        doc.text(title, 14, y);
+        y += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(51, 65, 85);
+        const lines = doc.splitTextToSize(content, 182);
+        doc.text(lines, 14, y);
+        y += lines.length * 5;
+      };
+
+      addSection('Description', report.description);
+      addSection('Findings', report.findings);
+      addSection('Recommendations', report.recommendations);
+      if (report.reviewComment) addSection('Admin Review Comment', report.reviewComment);
+
+      // Issues
+      if (report.issues?.length > 0) {
+        y += 6;
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(220, 38, 38);
+        doc.text('Issues Found', 14, y);
+        y += 6;
+        report.issues.forEach((issue, i) => {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(51, 65, 85);
+          doc.text(`${i + 1}. [${issue.severity}] ${issue.description}`, 14, y);
+          y += 7;
+        });
+      }
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= pageCount; p++) {
+        doc.setPage(p);
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Quality Pulse | Confidential | Page ${p} of ${pageCount}`, 14, 290);
+      }
+
+      doc.save(`QA-Report-${report.title?.replace(/\s+/g, '-') || id}.pdf`);
+      toast.success('PDF exported successfully!');
+    } catch (e) {
+      console.error('PDF export error:', e);
+      toast.error('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  // Phase 3: CSV/Excel Export
+  const exportCSV = () => {
+    if (!report) return;
+    try {
+      const data = [[
+        'Report Title', 'Status', 'Site', 'Engineer', 'Material Tested',
+        'Test Result', 'Compliance Status', 'Description', 'Findings',
+        'Recommendations', 'GPS Lat', 'GPS Lng', 'Created At', 'Reviewed By', 'Review Comment'
+      ], [
+        report.title || '',
+        report.status || '',
+        report.site?.name || '',
+        report.inspector?.name || '',
+        report.materialTested || '',
+        report.testResult || '',
+        report.complianceStatus || '',
+        report.description || '',
+        report.findings || '',
+        report.recommendations || '',
+        report.location?.lat || '',
+        report.location?.lng || '',
+        new Date(report.createdAt).toLocaleString(),
+        report.reviewedBy?.name || '',
+        report.reviewComment || ''
+      ]];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'QA Report');
+      XLSX.writeFile(wb, `QA-Report-${report.title?.replace(/\s+/g, '-') || id}.xlsx`);
+      toast.success('Excel file exported!');
+    } catch (e) {
+      console.error('CSV export error:', e);
+      toast.error('Failed to export data.');
     }
   };
 
@@ -165,38 +324,28 @@ export default function ReportDetails() {
                 </div>
                 
                 {/* Action buttons based on user role */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {user.role === 'Engineer' && (report.status === 'Pending' || report.status === 'Rejected') && (
-                    <button
-                      onClick={() => navigate(`/reports/${report._id}/edit`)}
-                      className="px-6 py-3 rounded-lg font-medium transition-all duration-200
-                        bg-gradient-to-r from-yellow-500 to-yellow-600 
-                        text-slate-900
-                        hover:from-yellow-600 hover:to-yellow-700 
-                        hover:shadow-lg hover:shadow-yellow-500/25
-                        active:scale-[0.99]
-                        flex items-center"
-                    >
-                      <i className="fas fa-edit mr-2"></i>
-                      Edit Report
+                    <button onClick={() => navigate(`/reports/${report._id}/edit`)}
+                      className="px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-yellow-500 to-yellow-600 text-slate-900 hover:from-yellow-600 hover:to-yellow-700 hover:shadow-lg active:scale-[0.99] flex items-center">
+                      <i className="fas fa-edit mr-2"></i> Edit Report
                     </button>
                   )}
-                  
                   {user.role === 'Admin' && report.status === 'Pending' && (
-                    <button
-                      onClick={() => navigate(`/reports/${report._id}/review`)}
-                      className="px-6 py-3 rounded-lg font-medium transition-all duration-200
-                        bg-gradient-to-r from-yellow-500 to-yellow-600 
-                        text-slate-900
-                        hover:from-yellow-600 hover:to-yellow-700 
-                        hover:shadow-lg hover:shadow-yellow-500/25
-                        active:scale-[0.99]
-                        flex items-center"
-                    >
-                      <i className="fas fa-clipboard-check mr-2"></i>
-                      Review Report
+                    <button onClick={() => navigate(`/reports/${report._id}/review`)}
+                      className="px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-yellow-500 to-yellow-600 text-slate-900 hover:from-yellow-600 hover:to-yellow-700 hover:shadow-lg active:scale-[0.99] flex items-center">
+                      <i className="fas fa-clipboard-check mr-2"></i> Review Report
                     </button>
                   )}
+                  {/* Phase 3: Export Buttons */}
+                  <button onClick={exportPDF}
+                    className="px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-700 dark:hover:bg-slate-600 flex items-center gap-2">
+                    <FiDownload className="text-sm" /> PDF
+                  </button>
+                  <button onClick={exportCSV}
+                    className="px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-green-700 text-white hover:bg-green-600 flex items-center gap-2">
+                    <FiFileText className="text-sm" /> Excel
+                  </button>
                 </div>
               </div>
 

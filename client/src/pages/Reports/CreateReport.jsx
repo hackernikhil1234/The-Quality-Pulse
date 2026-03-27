@@ -1,12 +1,13 @@
 // pages/Reports/CreateReport.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import api from '../../services/api';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
-import { FiArrowLeft } from 'react-icons/fi';
+import { FiArrowLeft, FiWifi, FiWifiOff, FiMapPin } from 'react-icons/fi';
+import { saveOfflineReport, getOfflineReports, deleteOfflineReport, base64ToFile } from '../../services/offlineSync';
 
 export default function CreateReport() {
   const [searchParams] = useSearchParams();
@@ -41,6 +42,89 @@ export default function CreateReport() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [originalReport, setOriginalReport] = useState(null);
   const [isFormHovered, setIsFormHovered] = useState(false);
+  // Phase 1: Offline + Phase 2: GPS
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [gpsLocation, setGpsLocation] = useState(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [pendingOfflineCount, setPendingOfflineCount] = useState(0);
+
+  // Phase 1: Track online/offline status and process pending offline reports
+  useEffect(() => {
+    const goOnline = () => {
+      setIsOnline(true);
+      toast.success('🌐 Connection restored! Syncing offline reports...', { duration: 4000 });
+      syncOfflineReports();
+    };
+    const goOffline = () => {
+      setIsOnline(false);
+      toast.error('📵 You are offline. Reports will be saved locally.', { duration: 5000 });
+    };
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    // Count any pending offline reports on mount
+    getOfflineReports().then(reports => setPendingOfflineCount(reports.length));
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
+
+  // Sync queued offline reports to the backend when online
+  const syncOfflineReports = useCallback(async () => {
+    try {
+      const pending = await getOfflineReports();
+      if (pending.length === 0) return;
+      let synced = 0;
+      for (const entry of pending) {
+        try {
+          let uploadedUrls = [];
+          if (entry.images && entry.images.length > 0) {
+            const files = entry.images.map(img => base64ToFile(img.data, img.name, img.type));
+            const fd = new FormData();
+            files.forEach(f => fd.append('images', f));
+            const res = await api.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            uploadedUrls = res.data.files || [];
+          }
+          await api.post('/reports', { ...entry.reportData, images: uploadedUrls });
+          await deleteOfflineReport(entry.id);
+          synced++;
+        } catch (err) {
+          console.error('Failed to sync report:', entry.id, err);
+        }
+      }
+      if (synced > 0) toast.success(`✅ ${synced} offline report(s) synced successfully!`);
+      const remaining = await getOfflineReports();
+      setPendingOfflineCount(remaining.length);
+    } catch (err) {
+      console.error('Sync failed:', err);
+    }
+  }, []);
+
+  // Phase 2: Capture GPS Location
+  const captureGPS = () => {
+    if (!navigator.geolocation) {
+      toast.error('GPS not supported on this device');
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = {
+          lat: parseFloat(position.coords.latitude.toFixed(6)),
+          lng: parseFloat(position.coords.longitude.toFixed(6))
+        };
+        setGpsLocation(coords);
+        setGpsLoading(false);
+        toast.success(`📍 Location captured: ${coords.lat}, ${coords.lng}`);
+      },
+      (error) => {
+        console.error('GPS error:', error);
+        setGpsLoading(false);
+        toast.error('Could not get GPS location. Please allow location access.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   // Load sites assigned to the engineer
   useEffect(() => {
@@ -194,23 +278,33 @@ export default function CreateReport() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    console.log('Form data:', formData);
-    
-    if (!formData.site) {
-      toast.error('Please select a site');
+    if (!formData.site) { toast.error('Please select a site'); return; }
+    if (!formData.title.trim()) { toast.error('Report title is required'); return; }
+    if (!formData.materialTested.trim()) { toast.error('Material tested is required'); return; }
+
+    // Phase 1: If offline, save to IndexedDB and queue for later sync
+    if (!navigator.onLine) {
+      try {
+        const reportData = {
+          site: formData.site, title: formData.title.trim(),
+          materialTested: formData.materialTested.trim(), testResult: formData.testResult,
+          complianceStatus: formData.complianceStatus, description: formData.description.trim(),
+          findings: formData.findings.trim(), recommendations: formData.recommendations.trim(),
+          comments: formData.comments.trim(),
+          issues: formData.issues.map(i => ({ description: i.description, severity: i.severity })),
+          location: gpsLocation || undefined
+        };
+        await saveOfflineReport(reportData, imageFiles);
+        const remaining = await getOfflineReports();
+        setPendingOfflineCount(remaining.length);
+        toast.success('📥 Report saved offline! Will auto-submit when connection is restored.', { duration: 6000 });
+        navigate('/reports');
+      } catch (err) {
+        toast.error('Failed to save report offline.');
+      }
       return;
     }
-    
-    if (!formData.title.trim()) {
-      toast.error('Report title is required');
-      return;
-    }
-    
-    if (!formData.materialTested.trim()) {
-      toast.error('Material tested is required');
-      return;
-    }
-    
+
     setLoading(true);
     
     try {
@@ -249,7 +343,9 @@ export default function CreateReport() {
           description: issue.description,
           severity: issue.severity
         })),
-        images: allImages
+        images: allImages,
+        // Phase 2: Attach GPS coordinates if captured
+        location: gpsLocation || undefined
       };
       
       console.log('Submitting report data:', reportData);
@@ -383,6 +479,30 @@ export default function CreateReport() {
             </div>
           </div>
           
+          {/* Phase 1: Offline Status Banner */}
+          {!isOnline && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-center gap-3">
+              <FiWifiOff className="text-red-500 flex-shrink-0 text-lg" />
+              <div>
+                <p className="font-semibold text-red-700 dark:text-red-400">You are offline</p>
+                <p className="text-sm text-red-600 dark:text-red-500">Your report will be saved locally and auto-submitted when connection restores.</p>
+              </div>
+            </div>
+          )}
+          {isOnline && pendingOfflineCount > 0 && (
+            <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex items-center gap-3">
+              <FiWifi className="text-blue-500 flex-shrink-0 text-lg" />
+              <div className="flex-1">
+                <p className="font-semibold text-blue-700 dark:text-blue-400">{pendingOfflineCount} offline report(s) pending sync</p>
+                <p className="text-sm text-blue-600 dark:text-blue-500">These will be automatically submitted.</p>
+              </div>
+              <button type="button" onClick={syncOfflineReports}
+                className="text-xs px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                Sync Now
+              </button>
+            </div>
+          )}
+
           <form 
             onSubmit={handleSubmit} 
             onMouseEnter={() => setIsFormHovered(true)}
@@ -768,19 +888,39 @@ export default function CreateReport() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-              <button
-                type="submit"
-                disabled={loading || uploadingImages}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
+              {/* Phase 2: GPS Location Capture */}
+              <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <p className="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                      <FiMapPin className="text-yellow-500" /> GPS Verification
+                    </p>
+                    {gpsLocation ? (
+                      <p className="text-sm text-green-600 dark:text-green-400 mt-1">✅ Location: {gpsLocation.lat}, {gpsLocation.lng}</p>
+                    ) : (
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Capture GPS coordinates to verify on-site inspection</p>
+                    )}
+                  </div>
+                  <button type="button" onClick={captureGPS} disabled={gpsLoading}
+                    className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {gpsLoading ? (
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                    ) : <FiMapPin />}
+                    {gpsLoading ? 'Getting Location...' : gpsLocation ? 'Recapture GPS' : 'Capture GPS'}
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading || uploadingImages}
                 className="w-full py-3 text-lg font-medium rounded-lg transition-all duration-200
-                  bg-gradient-to-r from-yellow-500 to-yellow-600 
-                  text-slate-900
-                  hover:from-yellow-600 hover:to-yellow-700 
-                  hover:shadow-lg hover:shadow-yellow-500/25
-                  active:scale-[0.99] 
-                  disabled:from-yellow-300 disabled:to-yellow-400 disabled:cursor-not-allowed
-                  disabled:shadow-none
-                  flex items-center justify-center"
+                  bg-gradient-to-r from-yellow-500 to-yellow-600 text-slate-900
+                  hover:from-yellow-600 hover:to-yellow-700 hover:shadow-lg hover:shadow-yellow-500/25
+                  active:scale-[0.99] disabled:from-yellow-300 disabled:to-yellow-400 disabled:cursor-not-allowed
+                  disabled:shadow-none flex items-center justify-center"
               >
                 {(loading || uploadingImages) ? (
                   <>
@@ -791,29 +931,22 @@ export default function CreateReport() {
                     {uploadingImages ? 'Uploading Images...' : isEditMode ? 'Updating Report...' : 'Creating Report...'}
                   </>
                 ) : (
-                  isEditMode ? 'Update Report' : 'Submit Report'
+                  isEditMode ? 'Update Report' : (!isOnline ? '📥 Save Offline' : 'Submit Report')
                 )}
               </button>
               
-              <div className="mt-4 flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => navigate('/reports')}
+              <div className="flex justify-between">
+                <button type="button" onClick={() => navigate('/reports')}
                   className="px-4 py-2 rounded-lg font-medium transition-all duration-200
-                    text-yellow-600 dark:text-yellow-500 
-                    hover:text-yellow-700 dark:hover:text-yellow-400
-                    hover:bg-yellow-50 dark:hover:bg-yellow-500/10"
-                >
+                    text-yellow-600 dark:text-yellow-500 hover:text-yellow-700 dark:hover:text-yellow-400
+                    hover:bg-yellow-50 dark:hover:bg-yellow-500/10">
                   Cancel and return to reports
                 </button>
                 {isEditMode && originalReport && (
-                  <a 
-                    href={`/reports/${originalReport._id}`}
+                  <a href={`/reports/${originalReport._id}`}
                     className="px-4 py-2 rounded-lg font-medium transition-all duration-200
-                      text-slate-600 dark:text-slate-400 
-                      hover:text-slate-800 dark:hover:text-slate-300
-                      hover:bg-slate-100 dark:hover:bg-slate-700/50"
-                  >
+                      text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300
+                      hover:bg-slate-100 dark:hover:bg-slate-700/50">
                     View original report
                   </a>
                 )}

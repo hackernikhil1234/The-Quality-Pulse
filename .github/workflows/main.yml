@@ -1,0 +1,117 @@
+name: 🚀 Quality Pulse CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ─────────────────────────────────────
+  # Job 1: Verify Backend Build
+  # ─────────────────────────────────────
+  backend-check:
+    name: "🔍 Backend Integrity Check"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./server
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "⚙️ Setup Node.js 20"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: "📦 Install Backend Dependencies"
+        run: npm install --legacy-peer-deps
+
+      - name: "🔒 Audit for Critical Vulnerabilities"
+        run: npm audit --audit-level=critical || true
+
+      - name: "✅ Verify server.js can be parsed"
+        run: node --check server.js
+
+  # ─────────────────────────────────────
+  # Job 2: Verify Frontend Build
+  # ─────────────────────────────────────
+  frontend-build:
+    name: "🏗️ Frontend Production Build"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "⚙️ Setup Node.js 20"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: "📦 Install Frontend Dependencies"
+        run: npm install --legacy-peer-deps
+
+      - name: "🏗️ Build Production Bundle"
+        run: npm run build
+        env:
+          # Build with a placeholder so Vite doesn't fail without real env vars
+          VITE_API_URL: https://placeholder-api.example.com
+
+      - name: "📊 Report Bundle Size"
+        run: |
+          echo "📦 Build complete. Bundle size:"
+          du -sh dist/
+
+  # ─────────────────────────────────────
+  # Job 3: Security Scan
+  # ─────────────────────────────────────
+  security-scan:
+    name: "🛡️ Security Scan"
+    runs-on: ubuntu-latest
+    needs: [backend-check, frontend-build]
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🔍 Scan for hardcoded secrets"
+        run: |
+          # Check for accidental secret leaks in committed files
+          if grep -rn "mongodb+srv" --include="*.js" --include="*.jsx" --include="*.ts" --exclude-dir=node_modules .; then
+            echo "⚠️ WARNING: Possible MongoDB URI found in source files. Review before deploying."
+          fi
+          if grep -rn "sk_live\|pk_live\|CLOUDINARY_API_SECRET" --include="*.js" --include="*.jsx" --exclude-dir=node_modules .; then
+            echo "❌ CRITICAL: Possible live API secret found in code!"
+            exit 1
+          fi
+          echo "✅ No obvious secrets detected in source files."
+
+  # ─────────────────────────────────────
+  # Status Summary
+  # ─────────────────────────────────────
+  pipeline-summary:
+    name: "📋 Pipeline Summary"
+    runs-on: ubuntu-latest
+    needs: [backend-check, frontend-build, security-scan]
+    if: always()
+
+    steps:
+      - name: "📋 Report Status"
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  🏗️ Quality Pulse CI/CD Pipeline Report"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  Backend Check   : ${{ needs.backend-check.result }}"
+          echo "  Frontend Build  : ${{ needs.frontend-build.result }}"
+          echo "  Security Scan   : ${{ needs.security-scan.result }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
