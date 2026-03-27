@@ -18,8 +18,7 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
   body: z.object({
-    email: z.string({ required_error: 'Email is required' })
-      .email('Invalid email address format'),
+    identifier: z.string({ required_error: 'Email or Phone is required' }),
     password: z.string({ required_error: 'Password is required' })
       .min(1, 'Password cannot be empty'),
   }),
