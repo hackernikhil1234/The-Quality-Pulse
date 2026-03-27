@@ -1,12 +1,17 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Protect routes - use this for existing routes
+// Protect routes - verifies the short-lived access token from Authorization header
 const protect = async (req, res, next) => {
   let token;
 
-  if (req.cookies.jwt || (req.headers.authorization && req.headers.authorization.startsWith('Bearer'))) {
-    token = req.cookies.jwt || req.headers.authorization.split(' ')[1];
+  // Primary: Authorization: Bearer <token>
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  // Legacy fallback: jwt cookie (for old clients during transition)
+  if (!token && req.cookies?.jwt) {
+    token = req.cookies.jwt;
   }
 
   if (!token) {
@@ -15,10 +20,11 @@ const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecret123');
-    req.user = await User.findById(decoded.id).select('-password');
+    req.user = await User.findById(decoded.id).select('-password -twoFactorSecret -twoFactorTempSecret');
+    if (!req.user) return res.status(401).json({ message: 'User not found' });
     next();
   } catch (err) {
-    console.error('Auth middleware error:', err);
+    // Token is expired or invalid — client interceptor should have refreshed it
     return res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };
@@ -68,17 +74,12 @@ const authMiddleware = async (req, res, next) => {
 // Authorize roles
 const authorize = (...roles) => {
   return (req, res, next) => {
-    console.log('Authorization check:'); // Debug
-    console.log('User:', req.user); // Debug
-    console.log('Required roles:', roles); // Debug
-    console.log('User role:', req.user?.role); // Debug
-
     if (!req.user) {
       return res.status(401).json({ message: 'Not authorized' });
     }
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ 
-        message: `User role ${req.user.role} is not authorized to access this resource` 
+        message: `Access denied. Required role: ${roles.join(' or ')}` 
       });
     }
     next();
