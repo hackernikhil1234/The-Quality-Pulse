@@ -15,6 +15,8 @@ const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 const morgan = require('morgan');
 const mongoSanitize = require('express-mongo-sanitize');
 const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 
 // Handle uncaught exceptions synchronously
 process.on('uncaughtException', err => {
@@ -78,6 +80,19 @@ io.use((socket, next) => {
 // Middleware
 app.use(helmet({ crossOriginResourcePolicy: false })); // Allow image resources
 app.use(mongoSanitize()); // Prevent NoSQL Injection
+app.use(compression()); // Compress outgoing response bodies
+
+// API Rate Limiting (Stops DDoS and Brute Force attacks)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per 15 mins
+  message: 'Too many requests from this IP, please try again after 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+// Apply the rate limiting middleware to API calls only
+app.use('/api/', apiLimiter);
+
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', { 
     stream: { write: message => logger.info(message.trim()) } 
 }));

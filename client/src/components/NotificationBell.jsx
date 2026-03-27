@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { FaBell, FaEnvelope, FaCheckCircle, FaRedo } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 
 export default function NotificationBell() {
   const { user } = useAuth();
@@ -16,6 +17,54 @@ export default function NotificationBell() {
   useEffect(() => {
     if (user && user._id) {
       fetchNotifications();
+
+      const handleNewNotification = (e) => {
+        const newNotif = e.detail;
+        
+        toast.custom((t) => (
+          <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-gray-800 shadow-xl rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 relative overflow-hidden border border-gray-100 dark:border-gray-700`}>
+            <div className={`absolute left-0 top-0 bottom-0 w-1 ${newNotif.type === 'error' ? 'bg-red-500' : newNotif.type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+            
+            <div className="flex-1 w-0 p-4 pl-6 cursor-pointer" onClick={() => {
+                setOpen(true);
+                toast.dismiss(t.id);
+            }}>
+              <div className="flex items-start">
+                <div className="flex-shrink-0 pt-0.5">
+                  <span className="text-2xl">🔔</span>
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                    {newNotif.title || 'New Notification'}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">
+                    {newNotif.message}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex border-l border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-purple-600 hover:text-purple-500 dark:text-purple-400 focus:outline-none"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        ), { duration: 6000, position: 'top-right' });
+        
+        setNotifications(prev => {
+          // Prevent duplicates if already in list
+          if (prev.some(n => n._id === newNotif._id)) return prev;
+          return [newNotif, ...prev];
+        });
+      };
+
+      window.addEventListener('socket-notification', handleNewNotification);
+      return () => {
+        window.removeEventListener('socket-notification', handleNewNotification);
+      };
     }
   }, [user]);
 

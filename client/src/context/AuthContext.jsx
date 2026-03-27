@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import socketService from '../services/socket';
 
 export const AuthContext = createContext();
 
@@ -52,6 +53,8 @@ export const AuthProvider = ({ children }) => {
           // Cache the user data
           localStorage.setItem('user', JSON.stringify(res.data));
           console.log('User loaded successfully:', res.data.role);
+          // Initiate Real-Time Connection
+          socketService.connect(res.data._id);
         } else {
           console.log('Invalid user data format, clearing cache');
           localStorage.removeItem('user');
@@ -119,6 +122,7 @@ export const AuthProvider = ({ children }) => {
         
         setUser(userData);
         console.log('User logged in:', userData.role);
+        socketService.connect(userData._id);
         return { success: true, user: userData };
       } else {
         console.error('Invalid login response format');
@@ -160,6 +164,7 @@ export const AuthProvider = ({ children }) => {
         
         setUser(userData);
         console.log('User registered:', userData.role);
+        socketService.connect(userData._id);
         return userData;
       } else {
         console.error('Invalid registration response format');
@@ -176,6 +181,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    socketService.disconnect();
     navigate('/login');
   };
 

@@ -27,7 +27,15 @@ router.post('/send', protect, async (req, res) => {
         : undefined
     });
 
-    // Here you can add real-time notification (Socket.io) or email notification
+    // Real-time notification (Socket.io)
+    const io = getIoFromRequest(req);
+    if (io && userId) {
+      console.log(`[Socket] Broadcasting live notification to connected user_${userId}`);
+      io.to(`user_${userId}`).emit('newNotification', {
+        ...notification.toObject(),
+        read: false
+      });
+    }
 
     res.json({
       success: true,
