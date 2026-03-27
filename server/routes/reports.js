@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const NotificationService = require('../services/notificationService');
 const { protect, authorize } = require('../middleware/auth');
+const validateRequest = require('../middleware/validateRequest');
+const { createReportSchema, updateReportStatusSchema } = require('../schemas');
 const Report = require('../models/Report');
 const Site = require('../models/Site');
 const User = require('../models/User');
@@ -10,7 +12,7 @@ const User = require('../models/User');
 router.use(protect);
 
 // Create report - Engineer only
-router.post('/', authorize('Engineer'), async (req, res) => {
+router.post('/', authorize('Engineer'), validateRequest(createReportSchema), async (req, res, next) => {
   try {
     console.log('Creating report with data:', req.body);
     console.log('User ID:', req.user._id);
@@ -187,7 +189,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update report status (Approve/Reject) - Admin only
-router.put('/:id/status', authorize('Admin'), async (req, res) => {
+router.put('/:id/status', authorize('Admin'), validateRequest(updateReportStatusSchema), async (req, res, next) => {
   try {
     const { status, reviewComment } = req.body;
     

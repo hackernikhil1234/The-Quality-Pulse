@@ -4,13 +4,15 @@ const bcrypt = require('bcryptjs');
 const { protect, authorize } = require('../middleware/auth'); // Make sure authorize is imported
 const User = require('../models/User');
 const NotificationService = require('../services/notificationService');
+const validateRequest = require('../middleware/validateRequest');
+const { registerSchema, loginSchema } = require('../schemas');
 
 // Import your existing controllers
 const { registerUser, loginUser, getMe } = require('../controllers/authController');
 
 // Existing routes
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+router.post('/register', validateRequest(registerSchema), registerUser);
+router.post('/login', validateRequest(loginSchema), loginUser);
 router.get('/me', protect, getMe);
 
 // Get users by role (for assigning engineers)

@@ -9,6 +9,20 @@ const uploadRoutes = require('./routes/upload');
 const notificationRoutes = require('./routes/notifications');
 const dashboardRoutes = require('./routes/dashboard');
 
+// --- NEW SYSTEM IMPORTS ---
+const logger = require('./utils/logger');
+const { errorHandler, notFound } = require('./middleware/errorMiddleware');
+const morgan = require('morgan');
+const mongoSanitize = require('express-mongo-sanitize');
+const helmet = require('helmet');
+
+// Handle uncaught exceptions synchronously
+process.on('uncaughtException', err => {
+  logger.error('UNCAUGHT EXCEPTION! 💥 Shutting down...', { error: err.stack });
+  process.exit(1);
+});
+// ----------------------------
+
 connectDB();
 
 const app = express();
@@ -62,6 +76,11 @@ io.use((socket, next) => {
 });
 
 // Middleware
+app.use(helmet({ crossOriginResourcePolicy: false })); // Allow image resources
+app.use(mongoSanitize()); // Prevent NoSQL Injection
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', { 
+    stream: { write: message => logger.info(message.trim()) } 
+}));
 app.use(cors({
   origin: function(origin, callback) { callback(null, true); },
   credentials: true,
@@ -331,9 +350,21 @@ app.get('/api/user-socket-status/:userId', (req, res) => {
   }
 });
 
+// Global Error Handlers (Should be after ALL routes)
+app.use(notFound);
+app.use(errorHandler);
+
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📡 Socket.IO ready for connections`);
-  console.log(`🔗 CORS enabled for: http://localhost:5173`);
+const runningServer = server.listen(PORT, () => {
+  logger.info(`🚀 Server running on http://localhost:${PORT}`);
+  logger.info(`📡 Socket.IO ready for connections`);
+  logger.info(`🔗 CORS enabled for: http://localhost:5173`);
+});
+
+// Handle unhandled promise rejections asynchronously
+process.on('unhandledRejection', err => {
+  logger.error('UNHANDLED REJECTION! 💥 Shutting down...', { error: err.stack });
+  runningServer.close(() => {
+    process.exit(1);
+  });
 });
