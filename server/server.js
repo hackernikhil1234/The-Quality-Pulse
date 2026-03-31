@@ -68,14 +68,26 @@ app.set('trust proxy', 1); // Trust Render's proxy for accurate rate limiting
 const server = http.createServer(app);
 
 // Build allowed origins list (merging environment variables with hardcoded production/local URLs)
-const defaultOrigins = ['http://localhost:5173', 'http://localhost:3000', 'https://the-quality-pulse.vercel.app'];
+const defaultOrigins = [
+  'http://localhost:5173', 
+  'http://localhost:3000', 
+  'https://the-quality-pulse.vercel.app',
+  'https://the-quality-pulse.onrender.com'
+];
 const envOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
 const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
 
 const corsOriginFn = (origin, callback) => {
   // Allow requests with no origin (mobile apps, server-to-server, curl)
   if (!origin) return callback(null, true);
-  if (allowedOrigins.includes(origin)) return callback(null, true);
+  
+  // Clean origin string (remove trailing slash if present)
+  const cleanOrigin = origin.replace(/\/$/, "");
+  
+  if (allowedOrigins.some(ao => ao.replace(/\/$/, "") === cleanOrigin)) {
+    return callback(null, true);
+  }
+  
   return callback(new Error(`CORS: origin '${origin}' not allowed`));
 };
 
@@ -464,8 +476,8 @@ app.use(errorHandler);
 // Start the server only if this file is run directly (not required as a module)
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
-  const runningServer = server.listen(PORT, () => {
-    logger.info(`🚀 Server running on http://localhost:${PORT}`);
+  const runningServer = server.listen(PORT, '0.0.0.0', () => {
+    logger.info(`🚀 Server running on http://0.0.0.0:${PORT}`);
     logger.info(`📡 Socket.IO ready for connections`);
     logger.info(`🔗 CORS enabled for: ${allowedOrigins.join(', ')}`);
   });
