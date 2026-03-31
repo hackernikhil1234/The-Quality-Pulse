@@ -107,10 +107,17 @@ export const AuthProvider = ({ children }) => {
         return { success: false, message: 'Invalid response format' };
       }
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Login failed' 
-      };
+      let errorMessage = 'Login failed. Please check your connection.';
+      
+      if (error.response) {
+        // Server responded with an error (4xx, 5xx)
+        errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        // Request made but no response (Network error)
+        errorMessage = 'Network error: Cannot reach the authentication server.';
+      }
+
+      return { success: false, message: errorMessage };
     }
   };
 
