@@ -154,7 +154,7 @@ export default function Profile() {
       
       // If it's a relative path, construct URL
       if (displayUser.avatar.startsWith('/uploads/')) {
-        return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${displayUser.avatar}`;
+        return `${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://the-quality-pulse.onrender.com' : 'http://localhost:5000')}${displayUser.avatar}`;
       }
       
       // If it's a full URL, return as is

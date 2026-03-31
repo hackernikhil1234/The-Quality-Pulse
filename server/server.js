@@ -67,11 +67,10 @@ app.set('trust proxy', 1); // Trust Render's proxy for accurate rate limiting
 
 const server = http.createServer(app);
 
-// Build allowed origins list from env var (including common production and local URLs)
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,https://the-quality-pulse.vercel.app')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
+// Build allowed origins list (merging environment variables with hardcoded production/local URLs)
+const defaultOrigins = ['http://localhost:5173', 'http://localhost:3000', 'https://the-quality-pulse.vercel.app'];
+const envOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
 
 const corsOriginFn = (origin, callback) => {
   // Allow requests with no origin (mobile apps, server-to-server, curl)
@@ -127,6 +126,14 @@ io.use((socket, next) => {
   }
 });
 
+// --- GLOBAL MIDDLEWARE ---
+app.use(cors({
+  origin: corsOriginFn,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 // Middleware
 app.use(helmet({
   crossOriginResourcePolicy: false, // Allow image resources from Cloudinary
@@ -169,12 +176,7 @@ const authLimiter = rateLimit({
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', { 
     stream: { write: message => logger.info(message.trim()) } 
 }));
-app.use(cors({
-  origin: corsOriginFn,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+// --- OTHER MIDDLEWARE ---
 
 // Serve static files from uploads directory
 const path = require('path');

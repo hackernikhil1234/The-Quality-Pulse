@@ -170,7 +170,7 @@ export default function CreateReport() {
           // Pre-fill form with existing report data
           // Make sure image URLs are complete
           const completeImages = report.images ? report.images.map(img => 
-            img.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}` : img
+            img.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://the-quality-pulse.onrender.com' : 'http://localhost:5000')}${img}` : img
           ) : [];
           
           setFormData({
@@ -849,7 +849,7 @@ export default function CreateReport() {
                               onError={(e) => {
                                 // If it's a server URL that fails, try to construct full URL
                                 if (!isBlobUrl && !image.startsWith('http')) {
-                                  e.target.src = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${image}`;
+                                  e.target.src = `${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://the-quality-pulse.onrender.com' : 'http://localhost:5000')}${image}`;
                                 } else {
                                   e.target.src = getFallbackImageUrl(index);
                                 }
