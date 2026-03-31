@@ -2,13 +2,15 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const { protect, authorize } = require('../middleware/auth');
 const User = require('../models/User');
 const NotificationService = require('../services/notificationService');
+const emailService = require('../services/emailService');
 const validateRequest = require('../middleware/validateRequest');
-const { registerSchema, loginSchema } = require('../schemas');
+const { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } = require('../schemas');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret123';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh_supersecret_123';
@@ -21,7 +23,7 @@ router.post('/register', validateRequest(registerSchema), registerUser);
 router.post('/login', validateRequest(loginSchema), loginUser);
 router.get('/me', protect, getMe);
 
-// ─── Feature 2: JWT Refresh Token ───────────────────────────────────────
+// ─── Feature 1: JWT Refresh Token ───────────────────────────────────────
 router.post('/refresh-token', (req, res) => {
   const token = req.cookies?.refreshToken;
   if (!token) return res.status(401).json({ message: 'No refresh token provided' });
@@ -31,6 +33,73 @@ router.post('/refresh-token', (req, res) => {
     res.json({ token: newAccessToken });
   } catch (err) {
     return res.status(403).json({ message: 'Invalid or expired refresh token. Please log in again.' });
+  }
+});
+
+// ─── Feature 2: Forgot Password ──────────────────────────────────────────
+router.post('/forgot-password', validateRequest(forgotPasswordSchema), async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    // Always respond generically to prevent email enumeration
+    const genericMessage = 'If an account with that email exists, a password reset link has been sent.';
+
+    if (!user) {
+      return res.json({ success: true, message: genericMessage });
+    }
+
+    // Generate a raw random token and store its hash
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+    await user.save({ validateBeforeSave: false });
+
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${rawToken}`;
+
+    emailService.sendPasswordResetEmail({
+      email: user.email,
+      name: user.name,
+      resetUrl,
+    }).catch(err => console.error('Password reset email failed (non-critical):', err.message));
+
+    res.json({ success: true, message: genericMessage });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: 'Server error. Please try again.' });
+  }
+});
+
+// ─── Feature 3: Reset Password ───────────────────────────────────────────
+router.post('/reset-password/:token', validateRequest(resetPasswordSchema), async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    const { token } = req.params;
+
+    // Hash the token from the URL to compare with stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Password reset link is invalid or has expired.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    await user.save();
+
+    res.json({ success: true, message: 'Password reset successfully. You can now log in.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ message: 'Server error. Please try again.' });
   }
 });
 

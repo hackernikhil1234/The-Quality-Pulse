@@ -26,6 +26,10 @@ const Profile = lazy(() => import('./pages/Profile'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Resources = lazy(() => import('./pages/Resources'));
 const Notifications = lazy(() => import('./pages/Notifications'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const AuditLog = lazy(() => import('./pages/AuditLog'));
 
 function App() {
   return (
@@ -42,6 +46,8 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
 
             {/* Protected routes - All authenticated users */}
             <Route element={<ProtectedRoute />}>
@@ -72,11 +78,13 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/admin/reports" element={<AdminReports />} />
+              <Route path="/admin/audit-log" element={<AuditLog />} />
               <Route path="/reports/:id/review" element={<ReportReview />} />
             </Route>
 
             {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/" />} />
+            {/* Catch all route - 404 Page */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </AuthProvider>

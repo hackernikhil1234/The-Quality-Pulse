@@ -5,8 +5,9 @@ import api from '../../services/api';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import { useAuth } from '../../context/AuthContext';
+import { SkeletonTable } from '../../components/SkeletonLoader';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiRefreshCw } from 'react-icons/fi';
+import { FiArrowLeft, FiRefreshCw, FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 export default function ReportList() {
   const { user, loading: authLoading } = useAuth();
@@ -20,6 +21,16 @@ export default function ReportList() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
   const [allSites, setAllSites] = useState([]); // Store all sites for name mapping
+  
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalReports, setTotalReports] = useState(0);
+  
+  // Search State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
 
   // Fetch all sites for site name mapping - FIXED
   useEffect(() => {
@@ -48,13 +59,26 @@ export default function ReportList() {
     }
     
     fetchReports();
-  }, [user, authLoading, siteId, statusFilter]);
+  }, [user, authLoading, siteId, statusFilter, page, limit, searchTerm]);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setPage(1); // Reset to first page on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const fetchReports = async () => {
     try {
       setLoading(true);
       
-      const params = {};
+      const params = {
+        page,
+        limit,
+        search: searchTerm
+      };
       
       if (siteId) {
         params.site = siteId;
@@ -76,8 +100,12 @@ export default function ReportList() {
       let reportsData = [];
       if (Array.isArray(res.data)) {
         reportsData = res.data;
+        setTotalReports(res.data.length);
+        setTotalPages(1);
       } else if (res.data?.reports && Array.isArray(res.data.reports)) {
         reportsData = res.data.reports;
+        setTotalReports(res.data.pagination?.total || reportsData.length);
+        setTotalPages(res.data.pagination?.pages || 1);
       }
       
       // Log first report for debugging
@@ -225,11 +253,9 @@ export default function ReportList() {
         <Sidebar />
         <div className="flex-1">
           <Navbar />
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto"></div>
-            <div className="mt-4 text-slate-600 dark:text-slate-400">
-              {authLoading ? 'Checking authentication...' : 'Loading reports...'}
-            </div>
+          <div className="p-8 space-y-6">
+            <div className="h-10 w-64 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+            <SkeletonTable rows={10} columns={7} />
           </div>
         </div>
       </div>
@@ -281,11 +307,27 @@ export default function ReportList() {
                   }
                 </h1>
                 <p className="text-slate-600 dark:text-slate-400 mt-2">
-                  {reports.length} report{reports.length !== 1 ? 's' : ''} found
+                  Showing {reports.length} of {totalReports} report{totalReports !== 1 ? 's' : ''}
                 </p>
               </div>
               
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                {/* Search Bar */}
+                <div className="relative w-full md:w-64">
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="text"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder="Search reports..."
+                    className="w-full pl-10 pr-4 py-2 rounded-lg transition-all duration-200
+                      bg-white dark:bg-slate-900 
+                      border border-slate-300 dark:border-slate-600 
+                      text-slate-700 dark:text-slate-300
+                      focus:outline-none focus:border-yellow-500 dark:focus:border-yellow-500 
+                      focus:ring-2 focus:ring-yellow-500/20 dark:focus:ring-yellow-500/30"
+                  />
+                </div>
                 {/* Status Filter */}
                 <select 
                   value={statusFilter}
@@ -566,10 +608,94 @@ export default function ReportList() {
                 </table>
               </div>
               
-              {/* REMOVED: Showing x reports line (now shown at top) */}
-              {/* Refresh button moved to top - removed from here */}
-            </div>
-          )}
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 dark:border-slate-700 pt-6">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+                    Page <span className="text-slate-900 dark:text-white font-bold">{page}</span> of <span className="text-slate-900 dark:text-white font-bold">{totalPages}</span>
+                  </p>
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                      disabled={page === 1}
+                      className="p-2 rounded-lg transition-all duration-200
+                        bg-white dark:bg-slate-900 
+                        border border-slate-300 dark:border-slate-600 
+                        text-slate-700 dark:text-slate-300
+                        hover:bg-slate-50 dark:hover:bg-slate-800
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                        flex items-center"
+                    >
+                      <FiChevronLeft className="mr-1" />
+                      Prev
+                    </button>
+                    
+                    {/* Page Numbers */}
+                    {[...Array(totalPages)].map((_, i) => {
+                      const pageNum = i + 1;
+                      // Only show a few page numbers around the current page
+                      if (
+                        pageNum === 1 || 
+                        pageNum === totalPages || 
+                        (pageNum >= page - 1 && pageNum <= page + 1)
+                      ) {
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setPage(pageNum)}
+                            className={`w-10 h-10 rounded-lg font-bold transition-all duration-200 ${
+                              page === pageNum
+                                ? 'bg-yellow-500 text-slate-900 shadow-lg shadow-yellow-500/25'
+                                : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      } else if (
+                        (pageNum === 2 && page > 3) ||
+                        (pageNum === totalPages - 1 && page < totalPages - 2)
+                      ) {
+                        return <span key={pageNum} className="px-1 text-slate-400">...</span>;
+                      }
+                      return null;
+                    })}
+                    
+                    <button
+                      onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={page === totalPages}
+                      className="p-2 rounded-lg transition-all duration-200
+                        bg-white dark:bg-slate-900 
+                        border border-slate-300 dark:border-slate-600 
+                        text-slate-700 dark:text-slate-300
+                        hover:bg-slate-50 dark:hover:bg-slate-800
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                        flex items-center"
+                    >
+                      Next
+                      <FiChevronRight className="ml-1" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Show:</span>
+                    <select
+                      value={limit}
+                      onChange={(e) => {
+                        setLimit(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/20"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+                </div>
+              )}
         </div>
       </div>
     </div>

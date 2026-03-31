@@ -143,4 +143,21 @@ const sendSiteAssignmentEmail = async ({ engineerEmail, engineerName, siteName, 
   });
 };
 
-module.exports = { sendWelcomeEmail, sendReportReviewedEmail, sendSiteAssignmentEmail, sendEmail };
+const sendPasswordResetEmail = async ({ email, name, resetUrl }) => {
+  return sendEmail({
+    to: email,
+    subject: '🔑 Reset Your Quality Pulse Password',
+    html: brandedHTML('Password Reset Request', `
+      <p>Hi <strong>${name}</strong>,</p>
+      <p>We received a request to reset your password. Click the button below to set a new password. This link is valid for <strong>1 hour</strong>.</p>
+      <p style="text-align:center; margin: 28px 0;">
+        <a href="${resetUrl}" class="btn">Reset My Password →</a>
+      </p>
+      <p style="font-size:12px; color:#94a3b8;">If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
+      <p style="font-size:12px; color:#94a3b8;">For security, this link will expire in 1 hour.</p>
+    `),
+  });
+};
+
+module.exports = { sendWelcomeEmail, sendReportReviewedEmail, sendSiteAssignmentEmail, sendPasswordResetEmail, sendEmail };
+

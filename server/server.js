@@ -65,10 +65,23 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
+// Build allowed origins list from env var
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const corsOriginFn = (origin, callback) => {
+  // Allow requests with no origin (mobile apps, server-to-server, curl)
+  if (!origin) return callback(null, true);
+  if (allowedOrigins.includes(origin)) return callback(null, true);
+  return callback(new Error(`CORS: origin '${origin}' not allowed`));
+};
+
 // Enhanced Socket.IO configuration
 const io = socketIo(server, {
   cors: {
-    origin: function(origin, callback) { callback(null, true); },
+    origin: corsOriginFn,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -113,26 +126,49 @@ io.use((socket, next) => {
 });
 
 // Middleware
-app.use(helmet({ crossOriginResourcePolicy: false })); // Allow image resources
+app.use(helmet({
+  crossOriginResourcePolicy: false, // Allow image resources from Cloudinary
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts for React
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com', 'blob:'],
+      connectSrc: ["'self'", ...allowedOrigins],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+    },
+  },
+}));
 app.use(mongoSanitize()); // Prevent NoSQL Injection
 app.use(compression()); // Compress outgoing response bodies
 
-// API Rate Limiting (Stops DDoS and Brute Force attacks)
+// General API Rate Limiting (300 req / 15 min per IP)
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per 15 mins
+  windowMs: 15 * 60 * 1000,
+  max: 300,
   message: 'Too many requests from this IP, please try again after 15 minutes.',
   standardHeaders: true,
   legacyHeaders: false,
 });
-// Apply the rate limiting middleware to API calls only
 app.use('/api/', apiLimiter);
+
+// Strict Auth Rate Limiting (10 req / 15 min per IP — brute-force protection)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many login attempts. Please wait 15 minutes before trying again.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Only count failed attempts
+});
 
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', { 
     stream: { write: message => logger.info(message.trim()) } 
 }));
 app.use(cors({
-  origin: function(origin, callback) { callback(null, true); },
+  origin: corsOriginFn,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -154,6 +190,11 @@ app.use((req, res, next) => {
 
 app.set('io', io);
 
+// Auth routes (with strict brute-force rate limiter on login/register)
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/sites', require('./routes/sites'));
@@ -171,8 +212,13 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/test', require('./routes/test'));
-app.use('/api/debug', require('./routes/debug'));
+
+// Development-only diagnostic routes (hidden in production)
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/test', require('./routes/test'));
+  app.use('/api/debug', require('./routes/debug'));
+  logger.info('⚠️  Dev diagnostic routes enabled: /api/test, /api/debug');
+}
 
 // Health check
 app.get('/', (req, res) => {
@@ -411,17 +457,23 @@ app.get('/api/user-socket-status/:userId', (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-const runningServer = server.listen(PORT, () => {
-  logger.info(`🚀 Server running on http://localhost:${PORT}`);
-  logger.info(`📡 Socket.IO ready for connections`);
-  logger.info(`🔗 CORS enabled for: http://localhost:5173`);
-});
-
-// Handle unhandled promise rejections asynchronously
-process.on('unhandledRejection', err => {
-  logger.error('UNHANDLED REJECTION! 💥 Shutting down...', { error: err.stack });
-  runningServer.close(() => {
-    process.exit(1);
+// Start the server only if this file is run directly (not required as a module)
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  const runningServer = server.listen(PORT, () => {
+    logger.info(`🚀 Server running on http://localhost:${PORT}`);
+    logger.info(`📡 Socket.IO ready for connections`);
+    logger.info(`🔗 CORS enabled for: ${allowedOrigins.join(', ')}`);
   });
-});
+
+  // Handle unhandled promise rejections asynchronously
+  process.on('unhandledRejection', err => {
+    logger.error('UNHANDLED REJECTION! 💥 Shutting down...', { error: err.stack });
+    runningServer.close(() => {
+      process.exit(1);
+    });
+  });
+}
+
+// Export app instance (without the listen call) so Supertest can use it
+module.exports = app;

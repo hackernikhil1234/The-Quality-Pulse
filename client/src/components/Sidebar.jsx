@@ -9,7 +9,8 @@ import {
   FiUser, 
   FiPlusSquare,
   FiShield,
-  FiFilePlus
+  FiFilePlus,
+  FiActivity
 } from 'react-icons/fi';
 import { FaHardHat } from 'react-icons/fa';
 
@@ -39,6 +40,7 @@ export default function Sidebar({ className = "" }) {
       items: [
         { path: '/sites/create', label: 'New Project', icon: FiPlusSquare, roles: ['Admin'] },
         { path: '/admin', label: 'Admin Console', icon: FiShield, roles: ['Admin'] },
+        { path: '/admin/audit-log', label: 'Audit Trail', icon: FiActivity, roles: ['Admin'] },
         { path: '/profile', label: 'My Profile', icon: FiUser, roles: ['Admin', 'Engineer'] },
       ]
     }

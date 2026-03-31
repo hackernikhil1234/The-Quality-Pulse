@@ -49,9 +49,29 @@ const updateReportStatusSchema = z.object({
   })
 });
 
+const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: z.string({ required_error: 'Email is required' })
+      .email('Please provide a valid email address'),
+  }),
+});
+
+const resetPasswordSchema = z.object({
+  body: z.object({
+    newPassword: z.string({ required_error: 'New password is required' })
+      .min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string().optional(),
+  }),
+  params: z.object({
+    token: z.string({ required_error: 'Reset token is required' }),
+  }),
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
   createReportSchema,
-  updateReportStatusSchema
+  updateReportStatusSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 };

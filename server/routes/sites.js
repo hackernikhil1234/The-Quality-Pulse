@@ -1,6 +1,7 @@
 const express = require('express');
 const AuditLog = require('../models/AuditLog');
 const NotificationService = require('../services/notificationService');
+const emailService = require('../services/emailService');
 const router = express.Router();
 const { 
   createSite, 
@@ -360,26 +361,33 @@ router.post('/:siteId/assign-engineers', authorize('Admin'), async (req, res) =>
 
     console.log('   Site updated successfully');
 
-    // Send notifications to each newly assigned engineer
+    // Send notifications + emails to each newly assigned engineer
     if (newEngineerIds.length > 0) {
       const io = req.app.get('io');
       console.log(`   🔔 Sending notifications to ${newEngineerIds.length} engineers`);
-      console.log('   IO instance available:', !!io);
-      
+
       for (const engineerId of newEngineerIds) {
         try {
-          console.log(`   📨 Creating notification for engineer ${engineerId}`);
           const notification = await NotificationService.notifyEngineerAssignedToSite(
             engineerId, 
             site._id, 
             req.user._id, 
             io
           );
-          
           if (notification) {
             console.log(`   ✅ Notification created: ${notification._id}`);
-          } else {
-            console.log(`   ❌ Failed to create notification for ${engineerId}`);
+          }
+
+          // Send assignment email (non-blocking)
+          const engineer = engineers.find(e => e._id.toString() === engineerId.toString());
+          if (engineer) {
+            emailService.sendSiteAssignmentEmail({
+              engineerEmail: engineer.email,
+              engineerName: engineer.name,
+              siteName: site.name,
+              siteLocation: site.location || site.city || 'N/A',
+              assignedByName: req.user.name,
+            }).catch(err => console.error(`   ⚠️ Email to ${engineer.email} failed (non-critical):`, err.message));
           }
         } catch (notifyError) {
           console.error(`   ❌ Error notifying engineer ${engineerId}:`, notifyError.message);
