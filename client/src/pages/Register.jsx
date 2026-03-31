@@ -191,9 +191,19 @@ export default function Register() {
     { code: '+61', country: '🇦🇺 Australia', display: '+61' },
   ];
 
-  return (
-    // MAIN CONTAINER: Split Screen (Slate Background for Dark, White for Light)
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 font-sans transition-colors duration-300">
+    <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden font-sans text-slate-900 dark:text-white transition-colors duration-300">
+      
+      {/* 1. SEAMLESS BACKGROUND VIDEO */}
+      <div className="absolute inset-0 z-0">
+        <SeamlessVideo 
+          src={registerVideo} 
+          duration={7000}    
+          crossfade={1500}
+        />
+      </div>
+
+      {/* 2. THEME OVERLAY */}
+      <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/75 z-0 backdrop-blur-[2px] transition-colors duration-300" />
       
       {/* Theme Toggle Button - Top Right */}
       <button
@@ -214,38 +224,16 @@ export default function Register() {
           <FiSun className="h-5 w-5 text-yellow-400 hover:text-yellow-300 transition-colors" />
         )}
       </button>
-      
-      {/* --- LEFT SIDE: VIDEO (Hidden on Mobile) --- */}
-      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden bg-slate-900">
-        <SeamlessVideo 
-          src={registerVideo} 
-          duration={7000}    
-          crossfade={1500}
-        />
-        
-        {/* Overlay Gradient: Matches Slate-900 */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent z-10"></div>
-        
-        {/* Brand Content Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-12 z-20">
-          <div className="max-w-xl">
-             <div className="inline-block mb-4 px-3 py-1 border border-yellow-500/30 rounded-full bg-yellow-500/10 backdrop-blur-md">
-               <span className="text-yellow-400 text-xs font-mono tracking-widest uppercase">● New User Protocol</span>
-             </div>
-            <h2 className="text-4xl font-black text-white tracking-tighter leading-none mb-4 uppercase">
-              Build Safer.<br/> <span className="text-yellow-500">Build Smarter.</span>
-            </h2>
-            <p className="text-lg text-slate-300 font-light border-l-2 border-yellow-500 pl-4">
-              Join thousands of engineers and admins streamlining their quality assurance workflow today.
-            </p>
-          </div>
-        </div>
-      </div>
 
-      {/* --- RIGHT SIDE: FORM --- */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center relative bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors duration-300">
-        
-        {/* Caution Tape Strip at Top of Right Panel */}
+      {/* 3. REGISTER CARD */}
+      <div className="relative z-10 w-full max-w-lg p-8 sm:p-10 space-y-8 
+        bg-white/80 dark:bg-slate-800/60 
+        backdrop-blur-xl rounded-sm 
+        shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] 
+        border border-slate-200 dark:border-slate-700 
+        transition-all duration-300">
+
+        {/* Decorative Caution Tape Strip (Top of Card) */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-600"></div>
 
         <div className="flex-1 flex flex-col justify-center px-4 py-12 sm:px-6 lg:px-20 xl:px-24">

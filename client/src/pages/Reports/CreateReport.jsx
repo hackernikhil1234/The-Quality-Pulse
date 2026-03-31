@@ -536,10 +536,21 @@ export default function CreateReport() {
                   disabled={!!siteId || isEditMode}
                 >
                   <option value="">Select Site</option>
-                  {sites.map(site => (
-                    <option key={site._id} value={site._id}>
-                      {site.name} - {site.location || `${site.city}, ${site.country}`}
-                    </option>
+                  {Object.entries(
+                    sites.reduce((acc, site) => {
+                      const type = site.type || 'General Projects';
+                      if (!acc[type]) acc[type] = [];
+                      acc[type].push(site);
+                      return acc;
+                    }, {})
+                  ).sort(([a], [b]) => a.localeCompare(b)).map(([type, group]) => (
+                    <optgroup key={type} label={type.toUpperCase()}>
+                      {group.map(site => (
+                        <option key={site._id} value={site._id}>
+                          {site.name} - {site.location || `${site.city}, ${site.country}`}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
                 {sites.length === 0 && user?.role === 'Engineer' && (
