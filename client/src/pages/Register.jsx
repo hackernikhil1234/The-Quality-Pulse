@@ -191,6 +191,7 @@ export default function Register() {
     { code: '+61', country: '🇦🇺 Australia', display: '+61' },
   ];
 
+  return (
     <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden font-sans text-slate-900 dark:text-white transition-colors duration-300">
       
       {/* 1. SEAMLESS BACKGROUND VIDEO */}
@@ -236,31 +237,95 @@ export default function Register() {
         {/* Decorative Caution Tape Strip (Top of Card) */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-600"></div>
 
-        <div className="flex-1 flex flex-col justify-center px-4 py-12 sm:px-6 lg:px-20 xl:px-24">
-          <div className="mx-auto w-full max-w-sm lg:w-96">
+        <div className="mx-auto w-full max-w-sm lg:w-96">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
+              Initialize Account
+            </h2>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Already registered?{' '}
+              <Link to="/login" className="font-bold text-yellow-600 hover:text-yellow-500 dark:text-yellow-500 dark:hover:text-yellow-400 transition-colors underline decoration-yellow-500/50 decoration-2 underline-offset-4">
+                Access Dashboard
+              </Link>
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             
-            <div className="mb-10">
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
-                Initialize Account
-              </h2>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Already registered?{' '}
-                <Link to="/login" className="font-bold text-yellow-600 hover:text-yellow-500 dark:text-yellow-500 dark:hover:text-yellow-400 transition-colors underline decoration-yellow-500/50 decoration-2 underline-offset-4">
-                  Access Dashboard
-                </Link>
-              </p>
+            {/* Name */}
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider text-xs">Full Name</label>
+              <div className="relative">
+                <input 
+                  name="name" 
+                  type="text"
+                  value={formData.name} 
+                  onChange={handleChange}
+                  className={`block w-full rounded-sm border px-4 py-3 
+                    bg-slate-50 dark:bg-slate-800 
+                    border-slate-300 dark:border-slate-700 
+                    text-slate-900 dark:text-white 
+                    placeholder-slate-400 
+                    focus:border-yellow-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-yellow-500 
+                    sm:text-sm transition-all font-mono 
+                    ${errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="John Doe"
+                />
+                {errors.name && <p className="absolute -bottom-5 left-0 text-xs text-red-500 font-bold">{errors.name}</p>}
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              
-              {/* Name */}
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider text-xs">Full Name</label>
-                <div className="relative">
+            {/* Email */}
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider text-xs">Email address</label>
+              <div className="relative">
+                <input 
+                  name="email" 
+                  type="email"
+                  value={formData.email} 
+                  onChange={handleChange}
+                  className={`block w-full rounded-sm border px-4 py-3 
+                    bg-slate-50 dark:bg-slate-800 
+                    border-slate-300 dark:border-slate-700 
+                    text-slate-900 dark:text-white 
+                    placeholder-slate-400 
+                    focus:border-yellow-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-yellow-500 
+                    sm:text-sm transition-all font-mono 
+                    ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="john@example.com"
+                />
+                {errors.email && <p className="absolute -bottom-5 left-0 text-xs text-red-500 font-bold">{errors.email}</p>}
+              </div>
+            </div>
+
+            {/* Phone Group */}
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider text-xs">Phone Number</label>
+              <div className="flex gap-3">
+                <div className="w-28 flex-shrink-0">
+                  <select 
+                    name="countryCode" 
+                    value={formData.countryCode} 
+                    onChange={handleChange}
+                    className="block w-full rounded-sm border px-3 py-3 
+                      bg-slate-50 dark:bg-slate-800 
+                      border-slate-300 dark:border-slate-700 
+                      text-slate-900 dark:text-white 
+                      focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500 
+                      sm:text-sm font-mono cursor-pointer"
+                  >
+                    {countryCodes.map((country) => (
+                      <option key={country.code} value={country.code} className="bg-white dark:bg-slate-800">
+                        {country.display}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="relative flex-1">
                   <input 
-                    name="name" 
+                    name="phone" 
                     type="text"
-                    value={formData.name} 
+                    value={formData.phone} 
                     onChange={handleChange}
                     className={`block w-full rounded-sm border px-4 py-3 
                       bg-slate-50 dark:bg-slate-800 
@@ -269,154 +334,87 @@ export default function Register() {
                       placeholder-slate-400 
                       focus:border-yellow-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-yellow-500 
                       sm:text-sm transition-all font-mono 
-                      ${errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                    placeholder="John Doe"
+                      ${errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                    placeholder="1234567890"
                   />
-                  {errors.name && <p className="absolute -bottom-5 left-0 text-xs text-red-500 font-bold">{errors.name}</p>}
+                  {errors.phone && <p className="absolute -bottom-5 left-0 text-xs text-red-500 font-bold">{errors.phone}</p>}
                 </div>
               </div>
+            </div>
 
-              {/* Email */}
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider text-xs">Email address</label>
-                <div className="relative">
-                  <input 
-                    name="email" 
-                    type="email"
-                    value={formData.email} 
-                    onChange={handleChange}
-                    className={`block w-full rounded-sm border px-4 py-3 
-                      bg-slate-50 dark:bg-slate-800 
-                      border-slate-300 dark:border-slate-700 
-                      text-slate-900 dark:text-white 
-                      placeholder-slate-400 
-                      focus:border-yellow-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-yellow-500 
-                      sm:text-sm transition-all font-mono 
-                      ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                    placeholder="john@example.com"
-                  />
-                  {errors.email && <p className="absolute -bottom-5 left-0 text-xs text-red-500 font-bold">{errors.email}</p>}
-                </div>
+            {/* Password */}
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider text-xs">Password</label>
+              <div className="relative">
+                <input 
+                  name="password" 
+                  type="password"
+                  value={formData.password} 
+                  onChange={handleChange}
+                  className={`block w-full rounded-sm border px-4 py-3 
+                    bg-slate-50 dark:bg-slate-800 
+                    border-slate-300 dark:border-slate-700 
+                    text-slate-900 dark:text-white 
+                    placeholder-slate-400 
+                    focus:border-yellow-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-yellow-500 
+                    sm:text-sm transition-all font-mono 
+                    ${errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="••••••••"
+                />
+                {errors.password && <p className="absolute -bottom-5 left-0 text-xs text-red-500 font-bold">{errors.password}</p>}
               </div>
+            </div>
 
-              {/* Phone Group */}
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider text-xs">Phone Number</label>
-                <div className="flex gap-3">
-                  <div className="w-28 flex-shrink-0">
-                    <select 
-                      name="countryCode" 
-                      value={formData.countryCode} 
-                      onChange={handleChange}
-                      className="block w-full rounded-sm border px-3 py-3 
-                        bg-slate-50 dark:bg-slate-800 
-                        border-slate-300 dark:border-slate-700 
-                        text-slate-900 dark:text-white 
-                        focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500 
-                        sm:text-sm font-mono cursor-pointer"
-                    >
-                      {countryCodes.map((country) => (
-                        <option key={country.code} value={country.code} className="bg-white dark:bg-slate-800">
-                          {country.display}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="relative flex-1">
-                    <input 
-                      name="phone" 
-                      type="text"
-                      value={formData.phone} 
-                      onChange={handleChange}
-                      className={`block w-full rounded-sm border px-4 py-3 
-                        bg-slate-50 dark:bg-slate-800 
-                        border-slate-300 dark:border-slate-700 
-                        text-slate-900 dark:text-white 
-                        placeholder-slate-400 
-                        focus:border-yellow-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-yellow-500 
-                        sm:text-sm transition-all font-mono 
-                        ${errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                      placeholder="1234567890"
-                    />
-                    {errors.phone && <p className="absolute -bottom-5 left-0 text-xs text-red-500 font-bold">{errors.phone}</p>}
-                  </div>
-                </div>
-              </div>
+            {/* Role Selection */}
+            <div>
+               <label className="block font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider text-xs">Assign Role</label>
+               <div className="grid grid-cols-2 gap-3">
+                 {['Engineer', 'Admin'].map((role) => (
+                   <button
+                     key={role}
+                     type="button"
+                     onClick={() => setFormData({...formData, role})}
+                     className={`flex items-center justify-center px-4 py-3 border rounded-sm text-sm font-bold uppercase tracking-wider transition-all ${
+                       formData.role === role 
+                         ? 'bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-400 ring-1 ring-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.2)]' 
+                         : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-600'
+                     }`}
+                   >
+                     {role === 'Engineer' ? '👷 Engineer' : '🛡️ Admin'}
+                   </button>
+                 ))}
+               </div>
+               
+               {/* Role Description */}
+               <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 px-1 border-l-2 border-slate-300 dark:border-slate-700 pl-2">
+                 {formData.role === 'Engineer' 
+                   ? "Engineers can submit daily reports, view assigned sites, and update logs." 
+                   : "Admins have full access to manage users, sites, reports, and system settings."}
+               </div>
+            </div>
 
-              {/* Password */}
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider text-xs">Password</label>
-                <div className="relative">
-                  <input 
-                    name="password" 
-                    type="password"
-                    value={formData.password} 
-                    onChange={handleChange}
-                    className={`block w-full rounded-sm border px-4 py-3 
-                      bg-slate-50 dark:bg-slate-800 
-                      border-slate-300 dark:border-slate-700 
-                      text-slate-900 dark:text-white 
-                      placeholder-slate-400 
-                      focus:border-yellow-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-yellow-500 
-                      sm:text-sm transition-all font-mono 
-                      ${errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                    placeholder="••••••••"
-                  />
-                  {errors.password && <p className="absolute -bottom-5 left-0 text-xs text-red-500 font-bold">{errors.password}</p>}
-                </div>
-              </div>
-
-              {/* Role Selection */}
-              <div>
-                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider text-xs">Assign Role</label>
-                 <div className="grid grid-cols-2 gap-3">
-                   {['Engineer', 'Admin'].map((role) => (
-                     <button
-                       key={role}
-                       type="button"
-                       onClick={() => setFormData({...formData, role})}
-                       className={`flex items-center justify-center px-4 py-3 border rounded-sm text-sm font-bold uppercase tracking-wider transition-all ${
-                         formData.role === role 
-                           ? 'bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-400 ring-1 ring-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.2)]' 
-                           : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-600'
-                       }`}
-                     >
-                       {role === 'Engineer' ? '👷 Engineer' : '🛡️ Admin'}
-                     </button>
-                   ))}
-                 </div>
-                 
-                 {/* Role Description */}
-                 <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 px-1 border-l-2 border-slate-300 dark:border-slate-700 pl-2">
-                   {formData.role === 'Engineer' 
-                     ? "Engineers can submit daily reports, view assigned sites, and update logs." 
-                     : "Admins have full access to manage users, sites, reports, and system settings."}
-                 </div>
-              </div>
-
-              {/* Submit */}
-              <div className="pt-2">
-                <button 
-                  type="submit" 
-                  disabled={loading}
-                  className="w-full flex justify-center py-4 px-4 border border-transparent rounded-sm shadow-lg text-lg font-bold text-slate-900 bg-yellow-500 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 focus:ring-offset-white dark:focus:ring-offset-slate-900 disabled:opacity-70 disabled:cursor-not-allowed transition-all hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]"
-                >
-                  {loading ? (
-                     <span className="flex items-center gap-2">
-                       <svg className="animate-spin h-5 w-5 text-slate-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                       </svg>
-                       INITIALIZING...
-                     </span>
-                  ) : (
-                    'CREATE ACCOUNT'
-                  )}
-                </button>
-              </div>
-              
-            </form>
-          </div>
+            {/* Submit */}
+            <div className="pt-2">
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-sm shadow-lg text-lg font-bold text-slate-900 bg-yellow-500 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 focus:ring-offset-white dark:focus:ring-offset-slate-900 disabled:opacity-70 disabled:cursor-not-allowed transition-all hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]"
+              >
+                {loading ? (
+                   <span className="flex items-center gap-2">
+                     <svg className="animate-spin h-5 w-5 text-slate-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                     </svg>
+                     INITIALIZING...
+                   </span>
+                ) : (
+                  'CREATE ACCOUNT'
+                )}
+              </button>
+            </div>
+            
+          </form>
         </div>
       </div>
     </div>
