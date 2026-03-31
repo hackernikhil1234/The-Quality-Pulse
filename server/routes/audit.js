@@ -1,3 +1,4 @@
+const express = require('express');
 const { protect, authorize } = require('../middleware/auth');
 const AuditLog = require('../models/AuditLog');
 const router = express.Router();

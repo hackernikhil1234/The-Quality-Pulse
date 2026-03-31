@@ -17,14 +17,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        console.log('Loading user from /auth/me...');
         
         // Check if token exists
         const token = localStorage.getItem('token');
-        console.log('Token from localStorage:', token ? 'Found' : 'Not found');
         
         if (!token) {
-          console.log('No token found, user is not logged in');
           setUser(null);
           setLoading(false);
           setInitialCheckDone(true);
@@ -37,35 +34,27 @@ export const AuthProvider = ({ children }) => {
           try {
             const parsedUser = JSON.parse(cachedUser);
             setUser(parsedUser);
-            console.log('Loaded user from cache:', parsedUser.role);
           } catch (e) {
-            console.log('Failed to parse cached user');
           }
         }
         
         // Then try to get fresh data from API
         const res = await api.get('/auth/me');
         
-        console.log('Auth response:', res.data);
-        
         if (res.data && res.data._id) {
           setUser(res.data);
           // Cache the user data
           localStorage.setItem('user', JSON.stringify(res.data));
-          console.log('User loaded successfully:', res.data.role);
           // Initiate Real-Time Connection
           socketService.connect(res.data._id);
         } else {
-          console.log('Invalid user data format, clearing cache');
           localStorage.removeItem('user');
           setUser(null);
         }
       } catch (err) {
-        console.log('Auth check failed:', err.message, err.response?.status);
         
         // If it's a 401 error, the token is invalid/expired
         if (err.response?.status === 401) {
-          console.log('Token expired or invalid, clearing...');
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
@@ -87,11 +76,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (identifier, password) => {
     try {
-      console.log('Attempting login...');
       const res = await api.post('/auth/login', { identifier, password });
       const userData = res.data;
-      
-      console.log('Login response:', userData);
       
       if (userData && userData._id) {
         // Check where the token is in the response
@@ -107,29 +93,20 @@ export const AuthProvider = ({ children }) => {
           token = userData.data.token;
         }
         
-        console.log('Token extracted:', token ? 'Yes' : 'No');
-        
         if (token) {
           localStorage.setItem('token', token);
-          console.log('Token saved to localStorage');
-        } else {
-          console.warn('No token found in login response');
         }
         
         // Store user data
         localStorage.setItem('user', JSON.stringify(userData));
-        console.log('User data saved to localStorage');
         
         setUser(userData);
-        console.log('User logged in:', userData.role);
         socketService.connect(userData._id);
         return { success: true, user: userData };
       } else {
-        console.error('Invalid login response format');
         return { success: false, message: 'Invalid response format' };
       }
     } catch (error) {
-      console.error('Login error:', error);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Login failed' 
@@ -163,21 +140,17 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
         
         setUser(userData);
-        console.log('User registered:', userData.role);
         socketService.connect(userData._id);
         return userData;
       } else {
-        console.error('Invalid registration response format');
         throw new Error('Invalid response format');
       }
     } catch (error) {
-      console.error('Registration error in AuthContext:', error);
       throw error;
     }
   };
 
   const logout = () => {
-    console.log('Logging out...');
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -186,7 +159,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (updatedUser) => {
-    console.log('Updating user context:', updatedUser);
     setUser(updatedUser);
     // Also update localStorage
     localStorage.setItem('user', JSON.stringify(updatedUser));

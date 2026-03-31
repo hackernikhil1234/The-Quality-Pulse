@@ -131,14 +131,12 @@ export default function CreateSite() {
           });
           
           const cityArray = Array.from(citySet).sort();
-          console.log('Cities found:', cityArray);
           
           setCities(cityArray);
           setFilteredCities(cityArray);
           setMapLoading(false);
         })
         .catch(err => {
-          console.error('Failed to load cities:', err);
           const fallbackCities = {
             'India': ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Ahmedabad', 'Pune', 'Jaipur', 'Lucknow'],
             'United States': ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose'],
@@ -190,7 +188,7 @@ export default function CreateSite() {
       );
       setFilteredCountries(filtered);
     } else if (!countrySearch && countries.length > 0) {
-      setFilteredCountries(countries);
+      setFilteredCountries(filteredCountries);
     }
   }, [countrySearch, countries]);
 
@@ -230,7 +228,6 @@ export default function CreateSite() {
       setGeocodingResults(data);
       setShowAddressResults(true);
     } catch (error) {
-      console.error('Geocoding error:', error);
       toast.error('Failed to search address');
     }
   };
@@ -289,7 +286,7 @@ export default function CreateSite() {
               setAddressSearch(data.display_name);
             }
           })
-          .catch(err => console.error('Reverse geocoding error:', err));
+          .catch(err => {});
       },
     });
     
@@ -360,7 +357,7 @@ export default function CreateSite() {
           }));
         }
       })
-      .catch(err => console.error('City geocoding error:', err));
+      .catch(err => {});
   };
 
   // Handle city input change - SIMPLIFIED VERSION
@@ -385,7 +382,7 @@ export default function CreateSite() {
               }));
             }
           })
-          .catch(err => console.error('Auto-geocoding error:', err));
+          .catch(err => {});
       }, 1000);
       
       return () => clearTimeout(timeoutId);
@@ -412,14 +409,10 @@ export default function CreateSite() {
         location: formData.exactAddress || `${formData.city}, ${formData.country}`
       };
       
-      console.log('🔔 Creating site with engineers:', siteData.assignedEngineers);
-      console.log('Site data:', siteData);
-
       await api.post('/sites', siteData);
       toast.success('Site created successfully!');
       navigate('/sites');
     } catch (err) {
-      console.error('Site creation error:', err);
       toast.error(err.response?.data?.message || 'Failed to create site');
     } finally {
       setLoading(false);

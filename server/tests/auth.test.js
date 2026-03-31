@@ -1,8 +1,16 @@
+// Mock email service (must be before any require that uses it)
+jest.mock('../services/emailService', () => ({
+    sendEmail: jest.fn().mockResolvedValue(true),
+    sendWelcomeEmail: jest.fn().mockResolvedValue(true),
+    sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
+    sendSiteAssignmentEmail: jest.fn().mockResolvedValue(true)
+}));
+
 const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const jwt = require('jsonwebtoken');
-const app = require('../server'); // We need server.js to export 'app'
+const app = require('../server');
 const User = require('../models/User');
 
 let mongoServer;

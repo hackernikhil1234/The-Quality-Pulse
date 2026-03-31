@@ -60,6 +60,10 @@ const brandedHTML = (title, bodyContent) => `
 `;
 
 const sendEmail = async ({ to, subject, html }) => {
+  if (process.env.NODE_ENV === 'test') {
+    return { success: true, message: 'Skipped in test mode' };
+  }
+
   const transporter = createTransporter();
   if (!transporter) {
     logger.warn(`Email not sent (EMAIL_USER/PASS not configured): ${subject}`);
