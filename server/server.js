@@ -63,10 +63,12 @@ process.on('uncaughtException', err => {
 connectDB();
 
 const app = express();
+app.set('trust proxy', 1); // Trust Render's proxy for accurate rate limiting
+
 const server = http.createServer(app);
 
-// Build allowed origins list from env var
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+// Build allowed origins list from env var (including common production and local URLs)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,https://the-quality-pulse.vercel.app')
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
