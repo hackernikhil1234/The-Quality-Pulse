@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import api from '../services/api';
-import { 
+import {
   FaBell,
   FaEnvelope,
   FaExclamationCircle,
@@ -15,7 +15,7 @@ import {
   FaTimes,
   FaCheck,
   FaArrowLeft,
-  FaCalendarAlt
+  FaCalendarAlt,
 } from 'react-icons/fa';
 
 export default function Notifications() {
@@ -39,7 +39,7 @@ export default function Notifications() {
 
   const fetchNotifications = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       setError('');
@@ -56,21 +56,17 @@ export default function Notifications() {
 
   const markAsRead = async (notificationId) => {
     if (!notificationId) return;
-    
+
     try {
       await api.put(`/notifications/${notificationId}/read`);
-      
-      setNotifications(prev =>
-        prev.map(n =>
-          n._id === notificationId ? { ...n, read: true } : n
-        )
+
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
       );
     } catch (error) {
       console.error('Error marking notification as read:', error);
-      setNotifications(prev =>
-        prev.map(n =>
-          n._id === notificationId ? { ...n, read: true } : n
-        )
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
       );
     }
   };
@@ -78,15 +74,11 @@ export default function Notifications() {
   const markAllAsRead = async () => {
     try {
       await api.put(`/notifications/user/${user._id}/mark-all-read`);
-      
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, read: true }))
-      );
+
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (error) {
       console.error('Error marking all as read:', error);
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, read: true }))
-      );
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     }
   };
 
@@ -94,7 +86,7 @@ export default function Notifications() {
     if (!notification.read && notification._id) {
       await markAsRead(notification._id);
     }
-    
+
     // FIXED: Report notifications should go to ReportDetails.jsx
     if (notification.metadata?.reportId) {
       navigate(`/reports/${notification.metadata.reportId}`);
@@ -107,11 +99,11 @@ export default function Notifications() {
 
   const deleteNotification = async () => {
     if (!notificationToDelete?._id) return;
-    
+
     try {
       await api.delete(`/notifications/${notificationToDelete._id}`);
-      
-      setNotifications(prev => prev.filter(n => n._id !== notificationToDelete._id));
+
+      setNotifications((prev) => prev.filter((n) => n._id !== notificationToDelete._id));
       setShowDeleteConfirm(false);
       setNotificationToDelete(null);
     } catch (error) {
@@ -123,13 +115,17 @@ export default function Notifications() {
   };
 
   const clearAllNotifications = async () => {
-    if (!window.confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) {
+    if (
+      !window.confirm(
+        'Are you sure you want to clear all notifications? This action cannot be undone.'
+      )
+    ) {
       return;
     }
-    
+
     try {
       await api.delete(`/notifications/user/${user._id}/clear-all`);
-      
+
       setNotifications([]);
     } catch (error) {
       console.error('Error clearing all notifications:', error);
@@ -139,7 +135,7 @@ export default function Notifications() {
 
   const formatTime = (dateString) => {
     if (!dateString) return 'Just now';
-    
+
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now - date;
@@ -154,21 +150,21 @@ export default function Notifications() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const filteredNotifications = notifications.filter(notification => {
+  const filteredNotifications = notifications.filter((notification) => {
     if (filter === 'unread') return !notification.read;
     if (filter === 'read') return notification.read;
     return true; // 'all'
   });
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const readCount = notifications.filter(n => n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  const readCount = notifications.filter((n) => n.read).length;
 
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
       <div className="flex-1 overflow-hidden">
         <Navbar />
-        
+
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
@@ -182,13 +178,15 @@ export default function Notifications() {
                   <FaArrowLeft className="text-gray-600 dark:text-gray-400" />
                 </button>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Notifications</h1>
+                  <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    Notifications
+                  </h1>
                   <p className="text-gray-600 dark:text-gray-400 mt-1">
                     {unreadCount} unread • {notifications.length} total
                   </p>
                 </div>
               </div>
-              
+
               {/* Actions moved to top */}
               <div className="flex items-center gap-3">
                 <button
@@ -202,7 +200,7 @@ export default function Notifications() {
                   <FaRedo />
                   Refresh
                 </button>
-                
+
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
@@ -212,7 +210,7 @@ export default function Notifications() {
                     Mark All as Read
                   </button>
                 )}
-                
+
                 {notifications.length > 0 && (
                   <button
                     onClick={clearAllNotifications}
@@ -232,39 +230,47 @@ export default function Notifications() {
             <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-purple-500/20 hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
               {/* Enhanced gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-              
+
               <div className="flex items-center justify-between relative z-10">
                 <div>
-                  <p className="text-sm opacity-90 text-slate-700 dark:text-slate-300">Total Notifications</p>
-                  <p className="text-3xl font-bold mt-2 text-slate-900 dark:text-white">{notifications.length}</p>
+                  <p className="text-sm opacity-90 text-slate-700 dark:text-slate-300">
+                    Total Notifications
+                  </p>
+                  <p className="text-3xl font-bold mt-2 text-slate-900 dark:text-white">
+                    {notifications.length}
+                  </p>
                 </div>
                 <FaBell className="text-3xl opacity-80 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
-            
+
             {/* Unread Notifications Card */}
             <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
               {/* Enhanced gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-              
+
               <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className="text-sm opacity-90 text-slate-700 dark:text-slate-300">Unread</p>
-                  <p className="text-3xl font-bold mt-2 text-slate-900 dark:text-white">{unreadCount}</p>
+                  <p className="text-3xl font-bold mt-2 text-slate-900 dark:text-white">
+                    {unreadCount}
+                  </p>
                 </div>
                 <FaEnvelope className="text-3xl opacity-80 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
-            
+
             {/* Read Notifications Card */}
             <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-green-500/20 hover:shadow-2xl hover:shadow-green-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
               {/* Enhanced gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-green-600 to-emerald-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-              
+
               <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className="text-sm opacity-90 text-slate-700 dark:text-slate-300">Read</p>
-                  <p className="text-3xl font-bold mt-2 text-slate-900 dark:text-white">{readCount}</p>
+                  <p className="text-3xl font-bold mt-2 text-slate-900 dark:text-white">
+                    {readCount}
+                  </p>
                 </div>
                 <FaCheckCircle className="text-3xl opacity-80 text-green-600 dark:text-green-400" />
               </div>
@@ -276,16 +282,14 @@ export default function Notifications() {
             {/* Left Column - Filters Only */}
             <div className="lg:col-span-1">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">
-                  Filters
-                </h3>
-                
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Filters</h3>
+
                 <div className="space-y-3">
                   <button
                     onClick={() => setFilter('all')}
                     className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
-                      filter === 'all' 
-                        ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800' 
+                      filter === 'all'
+                        ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent'
                     }`}
                   >
@@ -294,12 +298,12 @@ export default function Notifications() {
                       {notifications.length}
                     </span>
                   </button>
-                  
+
                   <button
                     onClick={() => setFilter('unread')}
                     className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
-                      filter === 'unread' 
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' 
+                      filter === 'unread'
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent'
                     }`}
                   >
@@ -311,12 +315,12 @@ export default function Notifications() {
                       {unreadCount}
                     </span>
                   </button>
-                  
+
                   <button
                     onClick={() => setFilter('read')}
                     className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
-                      filter === 'read' 
-                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' 
+                      filter === 'read'
+                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent'
                     }`}
                   >
@@ -337,14 +341,17 @@ export default function Notifications() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
                 <div className="mb-6">
                   <h3 className="text-xl font-bold text-gray-800 dark:text-white">
-                    {filter === 'all' ? 'All Notifications' : 
-                     filter === 'unread' ? 'Unread Notifications' : 'Read Notifications'}
+                    {filter === 'all'
+                      ? 'All Notifications'
+                      : filter === 'unread'
+                        ? 'Unread Notifications'
+                        : 'Read Notifications'}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 mt-1">
                     Showing {filteredNotifications.length} of {notifications.length} notifications
                   </p>
                 </div>
-                
+
                 {/* Notifications List */}
                 <div className="space-y-4">
                   {loading ? (
@@ -371,12 +378,15 @@ export default function Notifications() {
                         <FaBell className="w-10 h-10 text-purple-500" />
                       </div>
                       <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        {filter === 'all' ? 'No notifications yet' : 
-                         filter === 'unread' ? 'No unread notifications' : 'No read notifications'}
+                        {filter === 'all'
+                          ? 'No notifications yet'
+                          : filter === 'unread'
+                            ? 'No unread notifications'
+                            : 'No read notifications'}
                       </h3>
                       <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                        {filter === 'all' 
-                          ? 'When you receive notifications, they will appear here.' 
+                        {filter === 'all'
+                          ? 'When you receive notifications, they will appear here.'
                           : 'Try changing your filter to see more notifications.'}
                       </p>
                       {filter !== 'all' && (
@@ -393,14 +403,14 @@ export default function Notifications() {
                       <div
                         key={notification._id}
                         className={`p-4 rounded-lg border transition-all duration-300 hover:shadow-md ${
-                          !notification.read 
-                            ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' 
+                          !notification.read
+                            ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'
                             : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                         }`}
                       >
                         <div className="flex items-start gap-4">
                           {/* Notification Content - Clickable area */}
-                          <div 
+                          <div
                             className="flex-1 cursor-pointer"
                             onClick={() => handleNotificationClick(notification)}
                           >
@@ -418,12 +428,12 @@ export default function Notifications() {
                                 {formatTime(notification.createdAt)}
                               </span>
                             </div>
-                            
+
                             <p className="text-gray-600 dark:text-gray-300">
                               {notification.message}
                             </p>
                           </div>
-                          
+
                           {/* Simple Action Buttons */}
                           <div className="flex items-center gap-2">
                             {!notification.read && (
@@ -456,7 +466,7 @@ export default function Notifications() {
                   )}
                 </div>
               </div>
-              
+
               {/* Simple Bottom Info */}
               <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
                 <p>Notifications are automatically cleared after 30 days.</p>

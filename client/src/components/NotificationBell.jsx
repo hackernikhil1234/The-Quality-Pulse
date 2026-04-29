@@ -20,43 +20,53 @@ export default function NotificationBell() {
 
       const handleNewNotification = (e) => {
         const newNotif = e.detail;
-        
-        toast.custom((t) => (
-          <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-gray-800 shadow-xl rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 relative overflow-hidden border border-gray-100 dark:border-gray-700`}>
-            <div className={`absolute left-0 top-0 bottom-0 w-1 ${newNotif.type === 'error' ? 'bg-red-500' : newNotif.type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
-            
-            <div className="flex-1 w-0 p-4 pl-6 cursor-pointer" onClick={() => {
-                setOpen(true);
-                toast.dismiss(t.id);
-            }}>
-              <div className="flex items-start">
-                <div className="flex-shrink-0 pt-0.5">
-                  <span className="text-2xl">🔔</span>
-                </div>
-                <div className="ml-3 flex-1">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">
-                    {newNotif.title || 'New Notification'}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">
-                    {newNotif.message}
-                  </p>
+
+        toast.custom(
+          (t) => (
+            <div
+              className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-gray-800 shadow-xl rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 relative overflow-hidden border border-gray-100 dark:border-gray-700`}
+            >
+              <div
+                className={`absolute left-0 top-0 bottom-0 w-1 ${newNotif.type === 'error' ? 'bg-red-500' : newNotif.type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}
+              ></div>
+
+              <div
+                className="flex-1 w-0 p-4 pl-6 cursor-pointer"
+                onClick={() => {
+                  setOpen(true);
+                  toast.dismiss(t.id);
+                }}
+              >
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 pt-0.5">
+                    <span className="text-2xl">🔔</span>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                      {newNotif.title || 'New Notification'}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">
+                      {newNotif.message}
+                    </p>
+                  </div>
                 </div>
               </div>
+              <div className="flex border-l border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-purple-600 hover:text-purple-500 dark:text-purple-400 focus:outline-none"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-            <div className="flex border-l border-gray-200 dark:border-gray-700">
-              <button
-                onClick={() => toast.dismiss(t.id)}
-                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-purple-600 hover:text-purple-500 dark:text-purple-400 focus:outline-none"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        ), { duration: 6000, position: 'top-right' });
-        
-        setNotifications(prev => {
+          ),
+          { duration: 6000, position: 'top-right' }
+        );
+
+        setNotifications((prev) => {
           // Prevent duplicates if already in list
-          if (prev.some(n => n._id === newNotif._id)) return prev;
+          if (prev.some((n) => n._id === newNotif._id)) return prev;
           return [newNotif, ...prev];
         });
       };
@@ -81,12 +91,12 @@ export default function NotificationBell() {
 
   const fetchNotifications = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       // api instance automatically adds Authorization header and baseURL
       const response = await api.get(`/notifications/user/${user._id}`);
-      
+
       setNotifications(response.data);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -97,39 +107,31 @@ export default function NotificationBell() {
 
   const markAsRead = async (notificationId) => {
     if (!notificationId) return;
-    
+
     try {
       await api.put(`/notifications/${notificationId}/read`);
-      
-      setNotifications(prev =>
-        prev.map(n =>
-          n._id === notificationId ? { ...n, read: true } : n
-        )
+
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
       );
     } catch (error) {
       console.error('Error marking as read:', error);
-      setNotifications(prev =>
-        prev.map(n =>
-          n._id === notificationId ? { ...n, read: true } : n
-        )
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
       );
     }
   };
 
   const markAllAsRead = async () => {
     if (notifications.length === 0) return;
-    
+
     try {
       await api.put(`/notifications/user/${user._id}/mark-all-read`);
-      
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, read: true }))
-      );
+
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (error) {
       console.error('Error marking all as read:', error);
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, read: true }))
-      );
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     }
   };
 
@@ -138,9 +140,9 @@ export default function NotificationBell() {
     if (!notification.read && notification._id) {
       await markAsRead(notification._id);
     }
-    
+
     setOpen(false);
-    
+
     if (notification.metadata?.reportId) {
       navigate(`/reports/${notification.metadata.reportId}`);
     } else if (notification.metadata?.siteId) {
@@ -152,36 +154,66 @@ export default function NotificationBell() {
 
   const getNotificationIcon = (notification) => {
     const type = notification.type || '';
-    
+
     if (type.includes('site')) {
       return (
         <div className="flex-shrink-0">
           <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-            <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            <svg
+              className="w-4 h-4 text-blue-600 dark:text-blue-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+              />
             </svg>
           </div>
         </div>
       );
     }
-    
+
     if (type.includes('report')) {
       return (
         <div className="flex-shrink-0">
           <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-4 h-4 text-green-600 dark:text-green-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
         </div>
       );
     }
-    
+
     return (
       <div className="flex-shrink-0">
         <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-          <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          <svg
+            className="w-4 h-4 text-gray-600 dark:text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+            />
           </svg>
         </div>
       </div>
@@ -190,7 +222,7 @@ export default function NotificationBell() {
 
   const formatTimeAgo = (dateString) => {
     if (!dateString) return 'Just now';
-    
+
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now - date;
@@ -203,7 +235,7 @@ export default function NotificationBell() {
     return date.toLocaleDateString();
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
   const recentNotifications = notifications.slice(0, 5);
 
   return (
@@ -215,7 +247,7 @@ export default function NotificationBell() {
       >
         <div className="relative">
           <FaBell className="w-6 h-6 transition-transform group-hover:scale-110" />
-          
+
           {unreadCount > 0 && (
             <>
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -229,7 +261,7 @@ export default function NotificationBell() {
           )}
         </div>
       </button>
-      
+
       {open && (
         <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 transform transition-all duration-200 origin-top-right">
           {/* Header */}
@@ -260,7 +292,7 @@ export default function NotificationBell() {
               </div>
             </div>
           </div>
-          
+
           {/* Notifications List */}
           <div className="max-h-96 overflow-y-auto">
             {loading ? (
@@ -273,7 +305,9 @@ export default function NotificationBell() {
                 <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                   <FaBell className="w-6 h-6 text-gray-400" />
                 </div>
-                <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">No notifications</h4>
+                <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  No notifications
+                </h4>
                 <p className="text-sm text-gray-500 dark:text-gray-400">You're all caught up!</p>
               </div>
             ) : (
@@ -314,8 +348,18 @@ export default function NotificationBell() {
                             className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
                             aria-label="Mark as read"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
                             </svg>
                           </button>
                         </div>
@@ -326,7 +370,7 @@ export default function NotificationBell() {
               </div>
             )}
           </div>
-          
+
           {/* Footer */}
           <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
             <div className="flex justify-between items-center">
@@ -339,7 +383,12 @@ export default function NotificationBell() {
               >
                 View all notifications
                 <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
                 </svg>
               </button>
               <div className="text-xs text-gray-500 dark:text-gray-400">

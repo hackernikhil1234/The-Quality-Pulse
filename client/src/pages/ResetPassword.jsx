@@ -52,10 +52,15 @@ export default function ResetPassword() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden font-sans">
-      
       {/* Background Video */}
       <div className="absolute inset-0 z-0">
-        <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
           <source src={loginVideo} type="video/mp4" />
         </video>
       </div>
@@ -63,7 +68,6 @@ export default function ResetPassword() {
 
       {/* Card */}
       <div className="relative z-10 w-full max-w-md p-10 space-y-8 bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl rounded-sm shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] border border-slate-200 dark:border-slate-700">
-        
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-600" />
 
         {success ? (
@@ -74,10 +78,17 @@ export default function ResetPassword() {
               </div>
             </div>
             <div>
-              <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Password Reset!</h2>
-              <p className="mt-3 text-sm text-slate-400">Your password has been updated. Redirecting you to login...</p>
+              <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
+                Password Reset!
+              </h2>
+              <p className="mt-3 text-sm text-slate-400">
+                Your password has been updated. Redirecting you to login...
+              </p>
             </div>
-            <Link to="/login" className="inline-block px-6 py-3 bg-yellow-500 text-slate-900 font-bold rounded-sm hover:bg-yellow-400 transition-all">
+            <Link
+              to="/login"
+              className="inline-block px-6 py-3 bg-yellow-500 text-slate-900 font-bold rounded-sm hover:bg-yellow-400 transition-all"
+            >
               Go to Login →
             </Link>
           </div>
@@ -85,10 +96,16 @@ export default function ResetPassword() {
           <>
             <div className="text-center">
               <div className="inline-block mb-4 px-3 py-1 border border-yellow-500/30 rounded-full bg-yellow-500/10">
-                <span className="text-yellow-600 dark:text-yellow-400 text-xs font-mono tracking-widest uppercase">● Set New Password</span>
+                <span className="text-yellow-600 dark:text-yellow-400 text-xs font-mono tracking-widest uppercase">
+                  ● Set New Password
+                </span>
               </div>
-              <h2 className="text-4xl font-black text-white tracking-tighter uppercase">Reset Password</h2>
-              <p className="mt-3 text-sm text-slate-400 font-medium">Enter your new password below.</p>
+              <h2 className="text-4xl font-black text-white tracking-tighter uppercase">
+                Reset Password
+              </h2>
+              <p className="mt-3 text-sm text-slate-400 font-medium">
+                Enter your new password below.
+              </p>
             </div>
 
             {error && (
@@ -97,7 +114,10 @@ export default function ResetPassword() {
                 <div>
                   <p className="text-sm text-red-300">{error}</p>
                   {error.includes('expired') && (
-                    <Link to="/forgot-password" className="text-xs text-yellow-400 hover:text-yellow-300 underline mt-1 inline-block">
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs text-yellow-400 hover:text-yellow-300 underline mt-1 inline-block"
+                    >
                       Request a new reset link
                     </Link>
                   )}
@@ -149,18 +169,31 @@ export default function ResetPassword() {
               {formData.newPassword && (
                 <div className="space-y-1">
                   <div className="flex gap-1">
-                    {[1,2,3,4].map(i => (
-                      <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                        formData.newPassword.length >= i * 3
-                          ? i <= 1 ? 'bg-red-500' : i <= 2 ? 'bg-yellow-500' : i <= 3 ? 'bg-blue-500' : 'bg-green-500'
-                          : 'bg-slate-700'
-                      }`} />
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                          formData.newPassword.length >= i * 3
+                            ? i <= 1
+                              ? 'bg-red-500'
+                              : i <= 2
+                                ? 'bg-yellow-500'
+                                : i <= 3
+                                  ? 'bg-blue-500'
+                                  : 'bg-green-500'
+                            : 'bg-slate-700'
+                        }`}
+                      />
                     ))}
                   </div>
                   <p className="text-xs text-slate-500">
-                    {formData.newPassword.length < 6 ? 'Too short' :
-                     formData.newPassword.length < 10 ? 'Weak' :
-                     formData.newPassword.length < 14 ? 'Good' : 'Strong'}
+                    {formData.newPassword.length < 6
+                      ? 'Too short'
+                      : formData.newPassword.length < 10
+                        ? 'Weak'
+                        : formData.newPassword.length < 14
+                          ? 'Good'
+                          : 'Strong'}
                   </p>
                 </div>
               )}
@@ -177,7 +210,8 @@ export default function ResetPassword() {
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    RESET PASSWORD <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    RESET PASSWORD{' '}
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
                   </span>
                 )}
               </button>
@@ -186,7 +220,10 @@ export default function ResetPassword() {
         )}
 
         <div className="text-center">
-          <Link to="/login" className="text-sm text-slate-500 hover:text-yellow-400 transition-colors">
+          <Link
+            to="/login"
+            className="text-sm text-slate-500 hover:text-yellow-400 transition-colors"
+          >
             ← Back to Login
           </Link>
         </div>

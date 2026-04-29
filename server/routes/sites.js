@@ -3,15 +3,15 @@ const AuditLog = require('../models/AuditLog');
 const NotificationService = require('../services/notificationService');
 const emailService = require('../services/emailService');
 const router = express.Router();
-const { 
-  createSite, 
-  getSites, 
-  getSiteById, 
-  updateSite, 
+const {
+  createSite,
+  getSites,
+  getSiteById,
+  updateSite,
   archiveSite,
   restoreSite,
   deleteSite,
-  getSiteStats 
+  getSiteStats,
 } = require('../controllers/siteController');
 const { protect, authorize } = require('../middleware/auth');
 const Site = require('../models/Site'); // Import Site model for custom routes
@@ -41,14 +41,14 @@ router.get('/engineer/:engineerId', async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const sites = await Site.find({ 
+    const sites = await Site.find({
       assignedEngineers: req.params.engineerId,
-      isArchived: false 
+      isArchived: false,
     })
       .populate('assignedEngineers', 'name email')
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 });
-    
+
     res.json(sites);
   } catch (error) {
     console.error('Error fetching engineer sites:', error);
@@ -61,15 +61,15 @@ router.post('/:siteId/assign', authorize('Admin'), async (req, res) => {
   try {
     const { engineerIds } = req.body;
     const site = await Site.findById(req.params.siteId);
-    
+
     if (!site) {
       return res.status(404).json({ message: 'Site not found' });
     }
 
     // Validate engineer IDs
-    const engineers = await User.find({ 
+    const engineers = await User.find({
       _id: { $in: engineerIds },
-      role: 'Engineer'
+      role: 'Engineer',
     });
 
     if (engineers.length !== engineerIds.length) {
@@ -77,10 +77,8 @@ router.post('/:siteId/assign', authorize('Admin'), async (req, res) => {
     }
 
     // Add engineers if not already assigned
-    const newEngineers = engineerIds.filter(id => 
-      !site.assignedEngineers.includes(id)
-    );
-    
+    const newEngineers = engineerIds.filter((id) => !site.assignedEngineers.includes(id));
+
     site.assignedEngineers = [...new Set([...site.assignedEngineers, ...engineerIds])];
     await site.save();
 
@@ -90,11 +88,11 @@ router.post('/:siteId/assign', authorize('Admin'), async (req, res) => {
       await NotificationService.notifyEngineerAssignedToSite(engineerId, site._id, io);
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       site,
       assignedEngineers: site.assignedEngineers.length,
-      newAssignments: newEngineers.length
+      newAssignments: newEngineers.length,
     });
   } catch (error) {
     console.error('Error assigning engineers:', error);
@@ -106,28 +104,27 @@ router.post('/:siteId/assign', authorize('Admin'), async (req, res) => {
 router.delete('/:siteId/remove-engineer/:engineerId', authorize('Admin'), async (req, res) => {
   try {
     const site = await Site.findById(req.params.siteId);
-    
+
     if (!site) {
       return res.status(404).json({ message: 'Site not found' });
     }
 
     site.assignedEngineers = site.assignedEngineers.filter(
-      id => id.toString() !== req.params.engineerId
+      (id) => id.toString() !== req.params.engineerId
     );
-    
+
     await site.save();
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       site,
-      message: 'Engineer removed from site'
+      message: 'Engineer removed from site',
     });
   } catch (error) {
     console.error('Error removing engineer:', error);
     res.status(500).json({ message: 'Failed to remove engineer' });
   }
 });
-
 
 // ====================
 // ADMIN-ONLY ROUTES
@@ -159,7 +156,7 @@ router.get('/admin/archived', authorize('Admin'), async (req, res) => {
       .populate('assignedEngineers', 'name email')
       .populate('createdBy', 'name')
       .sort({ updatedAt: -1 });
-    
+
     res.json(sites);
   } catch (error) {
     console.error('Error fetching archived sites:', error);
@@ -170,14 +167,14 @@ router.get('/admin/archived', authorize('Admin'), async (req, res) => {
 // Get sites by status (admin only)
 router.get('/admin/status/:status', authorize('Admin'), async (req, res) => {
   try {
-    const sites = await Site.find({ 
+    const sites = await Site.find({
       status: req.params.status,
-      isArchived: false 
+      isArchived: false,
     })
       .populate('assignedEngineers', 'name email')
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 });
-    
+
     res.json(sites);
   } catch (error) {
     console.error('Error fetching sites by status:', error);
@@ -189,13 +186,13 @@ router.get('/admin/status/:status', authorize('Admin'), async (req, res) => {
 router.get('/admin/search', authorize('Admin'), async (req, res) => {
   try {
     const { query } = req.query;
-    
+
     if (!query || query.trim().length < 2) {
       return res.status(400).json({ message: 'Search query must be at least 2 characters' });
     }
-    
+
     const searchRegex = new RegExp(query, 'i');
-    
+
     const sites = await Site.find({
       $or: [
         { name: searchRegex },
@@ -205,19 +202,19 @@ router.get('/admin/search', authorize('Admin'), async (req, res) => {
         { exactAddress: searchRegex },
         { description: searchRegex },
         { 'siteManager.name': searchRegex },
-        { 'siteManager.email': searchRegex }
+        { 'siteManager.email': searchRegex },
       ],
-      isArchived: false
+      isArchived: false,
     })
       .populate('assignedEngineers', 'name email')
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 })
       .limit(50);
-    
+
     res.json({
       results: sites,
       count: sites.length,
-      query: query
+      query: query,
     });
   } catch (error) {
     console.error('Error searching sites:', error);
@@ -233,20 +230,25 @@ router.get('/admin/search', authorize('Admin'), async (req, res) => {
 router.put('/admin/bulk/status', authorize('Admin'), async (req, res) => {
   try {
     const { siteIds, status } = req.body;
-    
+
     if (!siteIds || !Array.isArray(siteIds) || siteIds.length === 0) {
       return res.status(400).json({ message: 'Site IDs array is required' });
     }
-    
-    if (!status || !['Active', 'Completed', 'Paused', 'In Progress', 'On Hold', 'Delayed', 'Planning'].includes(status)) {
+
+    if (
+      !status ||
+      !['Active', 'Completed', 'Paused', 'In Progress', 'On Hold', 'Delayed', 'Planning'].includes(
+        status
+      )
+    ) {
       return res.status(400).json({ message: 'Valid status is required' });
     }
-    
+
     const result = await Site.updateMany(
       { _id: { $in: siteIds } },
       { $set: { status: status, updatedAt: new Date() } }
     );
-    
+
     // Log bulk operation
     await AuditLog.create({
       userId: req.user._id,
@@ -255,13 +257,13 @@ router.put('/admin/bulk/status', authorize('Admin'), async (req, res) => {
       details: {
         siteCount: result.modifiedCount,
         status: status,
-        updatedBy: req.user.name
-      }
+        updatedBy: req.user.name,
+      },
     });
-    
+
     res.json({
       message: `Updated ${result.modifiedCount} sites to ${status} status`,
-      modifiedCount: result.modifiedCount
+      modifiedCount: result.modifiedCount,
     });
   } catch (error) {
     console.error('Error bulk updating site status:', error);
@@ -273,23 +275,23 @@ router.put('/admin/bulk/status', authorize('Admin'), async (req, res) => {
 router.put('/admin/bulk/archive', authorize('Admin'), async (req, res) => {
   try {
     const { siteIds } = req.body;
-    
+
     if (!siteIds || !Array.isArray(siteIds) || siteIds.length === 0) {
       return res.status(400).json({ message: 'Site IDs array is required' });
     }
-    
+
     const result = await Site.updateMany(
       { _id: { $in: siteIds } },
-      { 
-        $set: { 
+      {
+        $set: {
           isArchived: true,
           isActive: false,
           status: 'Completed',
-          updatedAt: new Date() 
-        } 
+          updatedAt: new Date(),
+        },
       }
     );
-    
+
     // Log bulk operation
     await AuditLog.create({
       userId: req.user._id,
@@ -297,13 +299,13 @@ router.put('/admin/bulk/archive', authorize('Admin'), async (req, res) => {
       resourceType: 'Site',
       details: {
         siteCount: result.modifiedCount,
-        updatedBy: req.user.name
-      }
+        updatedBy: req.user.name,
+      },
     });
-    
+
     res.json({
       message: `Archived ${result.modifiedCount} sites`,
-      modifiedCount: result.modifiedCount
+      modifiedCount: result.modifiedCount,
     });
   } catch (error) {
     console.error('Error bulk archiving sites:', error);
@@ -319,37 +321,38 @@ router.post('/:siteId/assign-engineers', authorize('Admin'), async (req, res) =>
     console.log('   Engineer IDs:', req.body.engineerIds);
     console.log('   Admin ID:', req.user._id);
     console.log('   Admin Name:', req.user.name);
-    
+
     const { engineerIds } = req.body;
     const site = await Site.findById(req.params.siteId);
-    
+
     if (!site) {
       console.log('❌ Site not found');
       return res.status(404).json({ message: 'Site not found' });
     }
 
     // Validate engineer IDs
-    const engineers = await User.find({ 
+    const engineers = await User.find({
       _id: { $in: engineerIds },
-      role: 'Engineer'
+      role: 'Engineer',
     });
 
-    console.log('   Found engineers:', engineers.map(e => ({ id: e._id, name: e.name })));
+    console.log(
+      '   Found engineers:',
+      engineers.map((e) => ({ id: e._id, name: e.name }))
+    );
 
     if (engineers.length !== engineerIds.length) {
       console.log('❌ Invalid engineer IDs');
-      return res.status(400).json({ 
-        message: 'One or more engineer IDs are invalid or not engineers' 
+      return res.status(400).json({
+        message: 'One or more engineer IDs are invalid or not engineers',
       });
     }
 
     // Get current assigned engineers
-    const currentEngineerIds = site.assignedEngineers.map(id => id.toString());
-    
+    const currentEngineerIds = site.assignedEngineers.map((id) => id.toString());
+
     // Find new engineers being assigned
-    const newEngineerIds = engineerIds.filter(id => 
-      !currentEngineerIds.includes(id.toString())
-    );
+    const newEngineerIds = engineerIds.filter((id) => !currentEngineerIds.includes(id.toString()));
 
     console.log('   Current engineers:', currentEngineerIds.length);
     console.log('   New engineers to assign:', newEngineerIds.length);
@@ -369,9 +372,9 @@ router.post('/:siteId/assign-engineers', authorize('Admin'), async (req, res) =>
       for (const engineerId of newEngineerIds) {
         try {
           const notification = await NotificationService.notifyEngineerAssignedToSite(
-            engineerId, 
-            site._id, 
-            req.user._id, 
+            engineerId,
+            site._id,
+            req.user._id,
             io
           );
           if (notification) {
@@ -379,15 +382,22 @@ router.post('/:siteId/assign-engineers', authorize('Admin'), async (req, res) =>
           }
 
           // Send assignment email (non-blocking)
-          const engineer = engineers.find(e => e._id.toString() === engineerId.toString());
+          const engineer = engineers.find((e) => e._id.toString() === engineerId.toString());
           if (engineer) {
-            emailService.sendSiteAssignmentEmail({
-              engineerEmail: engineer.email,
-              engineerName: engineer.name,
-              siteName: site.name,
-              siteLocation: site.location || site.city || 'N/A',
-              assignedByName: req.user.name,
-            }).catch(err => console.error(`   ⚠️ Email to ${engineer.email} failed (non-critical):`, err.message));
+            emailService
+              .sendSiteAssignmentEmail({
+                engineerEmail: engineer.email,
+                engineerName: engineer.name,
+                siteName: site.name,
+                siteLocation: site.location || site.city || 'N/A',
+                assignedByName: req.user.name,
+              })
+              .catch((err) =>
+                console.error(
+                  `   ⚠️ Email to ${engineer.email} failed (non-critical):`,
+                  err.message
+                )
+              );
           }
         } catch (notifyError) {
           console.error(`   ❌ Error notifying engineer ${engineerId}:`, notifyError.message);
@@ -397,24 +407,24 @@ router.post('/:siteId/assign-engineers', authorize('Admin'), async (req, res) =>
       console.log('   ℹ️ No new engineers to notify (already assigned)');
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `Assigned ${engineers.length} engineers to site`,
       site: {
         id: site._id,
         name: site.name,
-        assignedEngineers: site.assignedEngineers.length
+        assignedEngineers: site.assignedEngineers.length,
       },
-      notificationsSent: newEngineerIds.length
+      notificationsSent: newEngineerIds.length,
     });
-    
+
     console.log('✅ Assignment completed successfully\n');
   } catch (error) {
     console.error('❌ Error assigning engineers:', error);
     console.error('Stack trace:', error.stack);
-    res.status(500).json({ 
-      message: 'Failed to assign engineers', 
-      error: error.message 
+    res.status(500).json({
+      message: 'Failed to assign engineers',
+      error: error.message,
     });
   }
 });
@@ -424,7 +434,7 @@ router.post('/:siteId/assign/:engineerId', authorize('Admin'), async (req, res) 
   try {
     const site = await Site.findById(req.params.siteId);
     const engineer = await User.findById(req.params.engineerId);
-    
+
     if (!site) {
       return res.status(404).json({ message: 'Site not found' });
     }
@@ -434,8 +444,8 @@ router.post('/:siteId/assign/:engineerId', authorize('Admin'), async (req, res) 
     }
 
     // Check if already assigned
-    const isAlreadyAssigned = site.assignedEngineers.some(id => 
-      id.toString() === req.params.engineerId
+    const isAlreadyAssigned = site.assignedEngineers.some(
+      (id) => id.toString() === req.params.engineerId
     );
 
     if (isAlreadyAssigned) {
@@ -449,21 +459,21 @@ router.post('/:siteId/assign/:engineerId', authorize('Admin'), async (req, res) 
     // Send notification to engineer
     const io = req.app.get('io');
     const notification = await NotificationService.notifyEngineerAssignedToSite(
-      engineer._id, 
-      site._id, 
-      req.user._id, 
+      engineer._id,
+      site._id,
+      req.user._id,
       io
     );
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `Engineer ${engineer.name} assigned to site ${site.name}`,
       site: {
         id: site._id,
         name: site.name,
-        assignedEngineers: site.assignedEngineers.length
+        assignedEngineers: site.assignedEngineers.length,
       },
-      notification: notification ? 'Sent' : 'Failed to send'
+      notification: notification ? 'Sent' : 'Failed to send',
     });
   } catch (error) {
     console.error('Error assigning engineer:', error);

@@ -45,8 +45,8 @@ const swaggerSpec = swaggerJsdoc({
     servers: [{ url: '/api', description: 'API Server' }],
     components: {
       securitySchemes: {
-        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
-      }
+        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      },
     },
     security: [{ bearerAuth: [] }],
   },
@@ -54,7 +54,7 @@ const swaggerSpec = swaggerJsdoc({
 });
 
 // Handle uncaught exceptions synchronously
-process.on('uncaughtException', err => {
+process.on('uncaughtException', (err) => {
   logger.error('UNCAUGHT EXCEPTION! 💥 Shutting down...', { error: err.stack });
   process.exit(1);
 });
@@ -69,25 +69,28 @@ const server = http.createServer(app);
 
 // Build allowed origins list (merging environment variables with hardcoded production/local URLs)
 const defaultOrigins = [
-  'http://localhost:5173', 
-  'http://localhost:3000', 
+  'http://localhost:5173',
+  'http://localhost:3000',
   'https://the-quality-pulse.vercel.app',
-  'https://the-quality-pulse.onrender.com'
+  'https://the-quality-pulse.onrender.com',
 ];
-const envOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+const envOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
 const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
 
 const corsOriginFn = (origin, callback) => {
   // Allow requests with no origin (mobile apps, server-to-server, curl)
   if (!origin) return callback(null, true);
-  
+
   // Clean origin string (remove trailing slash if present)
-  const cleanOrigin = origin.replace(/\/$/, "");
-  
-  if (allowedOrigins.some(ao => ao.replace(/\/$/, "") === cleanOrigin)) {
+  const cleanOrigin = origin.replace(/\/$/, '');
+
+  if (allowedOrigins.some((ao) => ao.replace(/\/$/, '') === cleanOrigin)) {
     return callback(null, true);
   }
-  
+
   return callback(new Error(`CORS: origin '${origin}' not allowed`));
 };
 
@@ -96,8 +99,8 @@ const io = socketIo(server, {
   cors: {
     origin: corsOriginFn,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   },
   transports: ['websocket', 'polling'],
   pingTimeout: 60000,
@@ -106,7 +109,7 @@ const io = socketIo(server, {
     maxDisconnectionDuration: 2 * 60 * 1000,
     skipMiddlewares: true,
   },
-  allowEIO3: true // For compatibility with older clients
+  allowEIO3: true, // For compatibility with older clients
 });
 
 // Remove or comment out socketAuth if it's causing issues
@@ -118,7 +121,7 @@ io.use((socket, next) => {
   try {
     // Get token if available
     const token = socket.handshake.query.token || socket.handshake.auth.token;
-    
+
     if (token) {
       // Try to verify token if present
       const jwt = require('jsonwebtoken');
@@ -129,7 +132,7 @@ io.use((socket, next) => {
     } else {
       console.log('🔓 Anonymous socket connection (will need to join room manually)');
     }
-    
+
     next();
   } catch (error) {
     console.log('⚠️ Socket auth error (continuing anyway):', error.message);
@@ -139,29 +142,33 @@ io.use((socket, next) => {
 });
 
 // --- GLOBAL MIDDLEWARE ---
-app.use(cors({
-  origin: corsOriginFn,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use(
+  cors({
+    origin: corsOriginFn,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  })
+);
 
 // Middleware
-app.use(helmet({
-  crossOriginResourcePolicy: false, // Allow image resources from Cloudinary
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts for React
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com', 'blob:'],
-      connectSrc: ["'self'", ...allowedOrigins],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false, // Allow image resources from Cloudinary
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts for React
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com', 'blob:'],
+        connectSrc: ["'self'", ...allowedOrigins],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+      },
     },
-  },
-}));
+  })
+);
 app.use(mongoSanitize()); // Prevent NoSQL Injection
 app.use(compression()); // Compress outgoing response bodies
 
@@ -185,9 +192,11 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true, // Only count failed attempts
 });
 
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', { 
-    stream: { write: message => logger.info(message.trim()) } 
-}));
+app.use(
+  morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
+    stream: { write: (message) => logger.info(message.trim()) },
+  })
+);
 // --- OTHER MIDDLEWARE ---
 
 // Serve static files from uploads directory
@@ -222,32 +231,37 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // Feature: Swagger UI (Interactive API Docs)
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { background: #0f172a; } .swagger-ui .topbar-wrapper img { display: none; }',
-  customSiteTitle: 'Quality Pulse API Docs',
-}));
+app.use(
+  '/api/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customCss:
+      '.swagger-ui .topbar { background: #0f172a; } .swagger-ui .topbar-wrapper img { display: none; }',
+    customSiteTitle: 'Quality Pulse API Docs',
+  })
+);
 app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
 app.use('/api/dashboard', dashboardRoutes);
 
 // Development-only diagnostic routes (hidden in production)
 if (process.env.NODE_ENV !== 'production') {
-  app.use('/api/test', require('./routes/test'));
+  app.use('/api/test', require('./routes/testRoutes'));
   app.use('/api/debug', require('./routes/debug'));
   logger.info('⚠️  Dev diagnostic routes enabled: /api/test, /api/debug');
 }
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Construction QA Pro API', 
+  res.json({
+    message: 'Construction QA Pro API',
     version: '1.0.0',
     socketIo: true,
     endpoints: {
       auth: '/api/auth',
       sites: '/api/sites',
       reports: '/api/reports',
-      notifications: '/api/notifications'
-    }
+      notifications: '/api/notifications',
+    },
   });
 });
 
@@ -256,13 +270,13 @@ app.get('/', (req, res) => {
 // ──────────────────────────────────────
 io.on('connection', (socket) => {
   console.log('✅ New client connected:', socket.id, 'IP:', socket.handshake.address);
-  
+
   // Send immediate welcome message
-  socket.emit('connected', { 
+  socket.emit('connected', {
     message: 'Connected to Construction QA Pro Server',
     socketId: socket.id,
     serverTime: new Date().toISOString(),
-    userId: socket.userId || 'guest'
+    userId: socket.userId || 'guest',
   });
 
   // User joins their own room (simplified)
@@ -271,26 +285,26 @@ io.on('connection', (socket) => {
       if (userId) {
         const roomName = `user_${userId}`;
         socket.join(roomName);
-        
+
         // Remove from any previous user rooms
         const rooms = Array.from(socket.rooms);
-        rooms.forEach(room => {
+        rooms.forEach((room) => {
           if (room.startsWith('user_') && room !== roomName) {
             socket.leave(room);
           }
         });
-        
+
         console.log(`👤 User ${userId} joined room: ${roomName}`);
         socket.userId = userId;
-        
+
         // Send confirmation
-        socket.emit('roomJoined', { 
+        socket.emit('roomJoined', {
           success: true,
-          room: roomName, 
+          room: roomName,
           userId: userId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
-        
+
         // Log room statistics
         const room = io.sockets.adapter.rooms.get(roomName);
         console.log(`📊 Room ${roomName} now has ${room ? room.size : 0} connections`);
@@ -316,42 +330,45 @@ io.on('connection', (socket) => {
   // Test endpoint for debugging
   socket.on('ping', (data) => {
     console.log(`🏓 Ping from ${socket.id}:`, data);
-    socket.emit('pong', { 
+    socket.emit('pong', {
       message: 'Pong!',
       originalData: data,
       serverTime: new Date().toISOString(),
-      latency: Date.now() - (data.timestamp || Date.now())
+      latency: Date.now() - (data.timestamp || Date.now()),
     });
   });
 
   // Manual notification test
   socket.on('testNotification', ({ userId, message }) => {
     if (userId && message) {
-      const notification = { 
+      const notification = {
         _id: `test_${Date.now()}`,
         title: 'Test Notification',
         message: message,
         type: 'info',
         createdAt: new Date().toISOString(),
         read: false,
-        test: true
+        test: true,
       };
-      
+
       io.to(`user_${userId}`).emit('newNotification', notification);
       console.log(`🔔 Test notification sent to user ${userId}: ${message}`);
-      
+
       socket.emit('testNotificationResult', {
         success: true,
         userId,
         message: 'Test notification sent',
-        notification
+        notification,
       });
     }
   });
 
   // Handle disconnection
   socket.on('disconnect', (reason) => {
-    console.log(`❌ Client ${socket.id} (user: ${socket.userId || 'unknown'}) disconnected. Reason:`, reason);
+    console.log(
+      `❌ Client ${socket.id} (user: ${socket.userId || 'unknown'}) disconnected. Reason:`,
+      reason
+    );
   });
 
   // Error handling
@@ -365,7 +382,7 @@ app.get('/api/socket-status', (req, res) => {
   try {
     const rooms = Array.from(io.sockets.adapter.rooms.entries());
     const userRooms = rooms.filter(([roomName]) => roomName.startsWith('user_'));
-    
+
     const status = {
       totalConnections: io.engine.clientsCount,
       totalRooms: rooms.length,
@@ -373,23 +390,23 @@ app.get('/api/socket-status', (req, res) => {
       connectedUsers: userRooms.map(([roomName, room]) => ({
         userId: roomName.replace('user_', ''),
         connections: room.size,
-        sockets: Array.from(room).map(socketId => ({
+        sockets: Array.from(room).map((socketId) => ({
           id: socketId,
-          connectedAt: io.sockets.sockets.get(socketId)?.handshake.time
-        }))
+          connectedAt: io.sockets.sockets.get(socketId)?.handshake.time,
+        })),
       })),
-      serverTime: new Date().toISOString()
+      serverTime: new Date().toISOString(),
     };
-    
+
     res.json({
       success: true,
-      ...status
+      ...status,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Failed to get socket status',
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -399,7 +416,7 @@ app.post('/api/test-notification/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const { title = 'Test Notification', message = 'This is a test notification' } = req.body;
-    
+
     const notification = {
       _id: `manual_${Date.now()}`,
       title,
@@ -407,12 +424,12 @@ app.post('/api/test-notification/:userId', async (req, res) => {
       type: 'info',
       createdAt: new Date().toISOString(),
       read: false,
-      test: true
+      test: true,
     };
-    
+
     // Send via socket
     io.to(`user_${userId}`).emit('newNotification', notification);
-    
+
     // Also save to database if you want
     const Notification = require('./models/Notification');
     const dbNotification = await Notification.create({
@@ -420,21 +437,21 @@ app.post('/api/test-notification/:userId', async (req, res) => {
       title,
       message,
       type: 'info',
-      metadata: { test: true }
+      metadata: { test: true },
     });
-    
+
     res.json({
       success: true,
       message: 'Test notification sent',
       socketNotification: notification,
-      dbNotification: dbNotification
+      dbNotification: dbNotification,
     });
   } catch (error) {
     console.error('Test notification error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to send test notification',
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -445,26 +462,27 @@ app.get('/api/user-socket-status/:userId', (req, res) => {
     const { userId } = req.params;
     const roomName = `user_${userId}`;
     const room = io.sockets.adapter.rooms.get(roomName);
-    
+
     const status = {
       userId,
       roomName,
       isConnected: !!room && room.size > 0,
       connectionCount: room ? room.size : 0,
       socketIds: room ? Array.from(room) : [],
-      totalUsersConnected: Array.from(io.sockets.adapter.rooms.keys())
-        .filter(r => r.startsWith('user_')).length
+      totalUsersConnected: Array.from(io.sockets.adapter.rooms.keys()).filter((r) =>
+        r.startsWith('user_')
+      ).length,
     };
-    
+
     res.json({
       success: true,
-      ...status
+      ...status,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Failed to get user socket status',
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -483,7 +501,7 @@ if (require.main === module) {
   });
 
   // Handle unhandled promise rejections asynchronously
-  process.on('unhandledRejection', err => {
+  process.on('unhandledRejection', (err) => {
     logger.error('UNHANDLED REJECTION! 💥 Shutting down...', { error: err.stack });
     runningServer.close(() => {
       process.exit(1);

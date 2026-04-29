@@ -12,7 +12,7 @@ export default function AdminReports() {
   const navigate = useNavigate(); // ADD THIS LINE
   const siteId = searchParams.get('site');
   const siteName = searchParams.get('siteName') || 'Site';
-  
+
   const { user } = useAuth();
   const [reports, setReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -23,7 +23,7 @@ export default function AdminReports() {
   useEffect(() => {
     console.log('AdminReports - User:', user);
     console.log('AdminReports - Site ID:', siteId);
-    
+
     if (!user) {
       console.log('No user found');
       return;
@@ -48,9 +48,9 @@ export default function AdminReports() {
       console.log('AdminReports - Fetching reports for site:', siteId);
       const res = await api.get(`/reports?site=${siteId}`);
       // Handle both array and paginated response formats
-      const data = Array.isArray(res.data) ? res.data : (res.data?.reports || []);
+      const data = Array.isArray(res.data) ? res.data : res.data?.reports || [];
       setReports(data);
-      
+
       // Auto-select first report if available
       if (data.length > 0) {
         setSelectedReport(data[0]);
@@ -59,7 +59,7 @@ export default function AdminReports() {
       console.error('Error fetching reports:', error);
       console.error('Error status:', error.response?.status);
       console.error('Error data:', error.response?.data);
-      
+
       if (error.response?.status === 401) {
         toast.error('Session expired. Please login again.');
       } else if (error.response?.status === 403) {
@@ -67,32 +67,32 @@ export default function AdminReports() {
       } else {
         toast.error('Failed to load reports: ' + (error.response?.data?.message || error.message));
       }
-      
+
       setReports([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredReports = reports.filter(report => {
+  const filteredReports = reports.filter((report) => {
     if (statusFilter === 'All') return true;
     return report.status === statusFilter;
   });
 
   const handleApprove = async (reportId) => {
     if (!window.confirm('Approve this report?')) return;
-    
+
     if (!comment.trim()) {
       toast.error('Please provide a review comment');
       return;
     }
-    
+
     try {
       await api.put(`/reports/${reportId}/status`, {
         status: 'Approved',
-        reviewComment: comment
+        reviewComment: comment,
       });
-      
+
       toast.success('Report approved');
       setSelectedReport(null);
       setComment('');
@@ -108,15 +108,15 @@ export default function AdminReports() {
       toast.error('Please provide a reason for rejection');
       return;
     }
-    
+
     if (!window.confirm('Reject this report?')) return;
-    
+
     try {
       await api.put(`/reports/${reportId}/status`, {
         status: 'Rejected',
-        reviewComment: comment
+        reviewComment: comment,
       });
-      
+
       toast.success('Report rejected');
       setSelectedReport(null);
       setComment('');
@@ -129,24 +129,29 @@ export default function AdminReports() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'Approved': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'Rejected': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'Approved':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'Rejected':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
   };
 
-  if (loading) return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
-      <Sidebar />
-      <div className="flex-1">
-        <Navbar />
-        <div className="p-8 text-center">
-          <div className="text-gray-600 dark:text-gray-400">Loading reports...</div>
+  if (loading)
+    return (
+      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+        <Sidebar />
+        <div className="flex-1">
+          <Navbar />
+          <div className="p-8 text-center">
+            <div className="text-gray-600 dark:text-gray-400">Loading reports...</div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
 
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -163,10 +168,7 @@ export default function AdminReports() {
                 Review and approve/reject reports submitted by engineers
               </p>
             </div>
-            <button 
-              onClick={() => navigate('/sites')} 
-              className="btn-secondary"
-            >
+            <button onClick={() => navigate('/sites')} className="btn-secondary">
               <i className="fas fa-arrow-left mr-2"></i>
               Back to Sites
             </button>
@@ -177,7 +179,7 @@ export default function AdminReports() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <span className="text-gray-700 dark:text-gray-300">Filter by status:</span>
-                <select 
+                <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="input"
@@ -197,7 +199,9 @@ export default function AdminReports() {
           {filteredReports.length === 0 ? (
             <div className="card p-8 text-center">
               <p className="text-gray-600 dark:text-gray-400">
-                {reports.length === 0 ? 'No reports found for this site.' : `No ${statusFilter.toLowerCase()} reports.`}
+                {reports.length === 0
+                  ? 'No reports found for this site.'
+                  : `No ${statusFilter.toLowerCase()} reports.`}
               </p>
             </div>
           ) : (
@@ -209,7 +213,7 @@ export default function AdminReports() {
                     Reports List
                   </h3>
                   <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                    {filteredReports.map(report => (
+                    {filteredReports.map((report) => (
                       <div
                         key={report._id}
                         onClick={() => setSelectedReport(report)}
@@ -225,7 +229,10 @@ export default function AdminReports() {
                               {report.title || 'Untitled Report'}
                             </h4>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              By: {report.inspector?.name || report.inspector?.email || 'Unknown Engineer'}
+                              By:{' '}
+                              {report.inspector?.name ||
+                                report.inspector?.email ||
+                                'Unknown Engineer'}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                               {new Date(report.createdAt).toLocaleDateString()}
@@ -234,7 +241,9 @@ export default function AdminReports() {
                               Material: {report.materialTested}
                             </p>
                           </div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(report.status)}`}>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(report.status)}`}
+                          >
                             {report.status}
                           </span>
                         </div>
@@ -254,7 +263,9 @@ export default function AdminReports() {
                           {selectedReport.title || 'Untitled Report'}
                         </h2>
                         <div className="flex items-center gap-4 mt-2">
-                          <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusBadge(selectedReport.status)}`}>
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusBadge(selectedReport.status)}`}
+                          >
                             {selectedReport.status}
                           </span>
                           <span className="text-gray-600 dark:text-gray-400">
@@ -262,7 +273,10 @@ export default function AdminReports() {
                           </span>
                         </div>
                         <p className="text-gray-600 dark:text-gray-400 mt-1">
-                          By: {selectedReport.inspector?.name || selectedReport.inspector?.email || 'Unknown Engineer'}
+                          By:{' '}
+                          {selectedReport.inspector?.name ||
+                            selectedReport.inspector?.email ||
+                            'Unknown Engineer'}
                         </p>
                       </div>
                       {selectedReport.status === 'Pending' && (
@@ -288,7 +302,9 @@ export default function AdminReports() {
                     {/* Report Details */}
                     <div className="space-y-6">
                       <div>
-                        <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Material Tested</h3>
+                        <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">
+                          Material Tested
+                        </h3>
                         <p className="text-gray-600 dark:text-gray-400">
                           {selectedReport.materialTested}
                         </p>
@@ -296,22 +312,30 @@ export default function AdminReports() {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Test Result</h3>
-                          <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                            selectedReport.testResult === 'Pass' 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                          }`}>
+                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">
+                            Test Result
+                          </h3>
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                              selectedReport.testResult === 'Pass'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                            }`}
+                          >
                             {selectedReport.testResult}
                           </span>
                         </div>
                         <div>
-                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Compliance Status</h3>
-                          <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                            selectedReport.complianceStatus === 'Compliant'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                          }`}>
+                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">
+                            Compliance Status
+                          </h3>
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                              selectedReport.complianceStatus === 'Compliant'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                            }`}
+                          >
                             {selectedReport.complianceStatus}
                           </span>
                         </div>
@@ -319,7 +343,9 @@ export default function AdminReports() {
 
                       {selectedReport.description && (
                         <div>
-                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Description</h3>
+                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">
+                            Description
+                          </h3>
                           <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">
                             {selectedReport.description}
                           </p>
@@ -328,7 +354,9 @@ export default function AdminReports() {
 
                       {selectedReport.findings && (
                         <div>
-                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Findings</h3>
+                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">
+                            Findings
+                          </h3>
                           <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">
                             {selectedReport.findings}
                           </p>
@@ -337,7 +365,9 @@ export default function AdminReports() {
 
                       {selectedReport.recommendations && (
                         <div>
-                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Recommendations</h3>
+                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">
+                            Recommendations
+                          </h3>
                           <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">
                             {selectedReport.recommendations}
                           </p>
@@ -346,7 +376,9 @@ export default function AdminReports() {
 
                       {selectedReport.comments && (
                         <div>
-                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Additional Comments</h3>
+                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">
+                            Additional Comments
+                          </h3>
                           <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">
                             {selectedReport.comments}
                           </p>
@@ -355,10 +387,15 @@ export default function AdminReports() {
 
                       {selectedReport.issues && selectedReport.issues.length > 0 && (
                         <div>
-                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Issues Found</h3>
+                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">
+                            Issues Found
+                          </h3>
                           <div className="space-y-3">
                             {selectedReport.issues.map((issue, index) => (
-                              <div key={index} className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                              <div
+                                key={index}
+                                className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg"
+                              >
                                 <p className="font-medium text-red-700 dark:text-red-300">
                                   {issue.description}
                                 </p>
@@ -375,7 +412,9 @@ export default function AdminReports() {
 
                       {selectedReport.images && selectedReport.images.length > 0 && (
                         <div>
-                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Images</h3>
+                          <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">
+                            Images
+                          </h3>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             {selectedReport.images.map((image, index) => (
                               <img
@@ -408,7 +447,9 @@ export default function AdminReports() {
                       )}
 
                       {/* Previous Reviews */}
-                      {(selectedReport.reviewedBy || selectedReport.feedback || selectedReport.reviewComment) && (
+                      {(selectedReport.reviewedBy ||
+                        selectedReport.feedback ||
+                        selectedReport.reviewComment) && (
                         <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                           <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2">
                             Review Details
@@ -416,12 +457,16 @@ export default function AdminReports() {
                           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                             {selectedReport.reviewedBy && (
                               <p className="text-gray-700 dark:text-gray-300">
-                                <strong>Reviewer:</strong> {selectedReport.reviewedBy?.name || 'Admin'}
+                                <strong>Reviewer:</strong>{' '}
+                                {selectedReport.reviewedBy?.name || 'Admin'}
                               </p>
                             )}
                             {(selectedReport.reviewComment || selectedReport.feedback) && (
                               <p className="text-gray-700 dark:text-gray-300 mt-1">
-                                <strong>Comment:</strong> {selectedReport.reviewComment || selectedReport.feedback || 'No comment'}
+                                <strong>Comment:</strong>{' '}
+                                {selectedReport.reviewComment ||
+                                  selectedReport.feedback ||
+                                  'No comment'}
                               </p>
                             )}
                             {selectedReport.reviewedAt && (

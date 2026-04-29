@@ -7,19 +7,24 @@ import Sidebar from '../../components/Sidebar';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { FiArrowLeft, FiWifi, FiWifiOff, FiMapPin } from 'react-icons/fi';
-import { saveOfflineReport, getOfflineReports, deleteOfflineReport, base64ToFile } from '../../services/offlineSync';
+import {
+  saveOfflineReport,
+  getOfflineReports,
+  deleteOfflineReport,
+  base64ToFile,
+} from '../../services/offlineSync';
 
 export default function CreateReport() {
   const [searchParams] = useSearchParams();
   const { id } = useParams();
-  
+
   const siteId = searchParams.get('site');
   const siteName = searchParams.get('siteName');
   const editReportId = searchParams.get('edit');
-  
+
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     site: siteId || '',
     title: '',
@@ -31,7 +36,7 @@ export default function CreateReport() {
     recommendations: '',
     comments: '',
     images: [],
-    issues: []
+    issues: [],
   });
 
   const [loading, setLoading] = useState(false);
@@ -42,32 +47,12 @@ export default function CreateReport() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [originalReport, setOriginalReport] = useState(null);
   const [isFormHovered, setIsFormHovered] = useState(false);
+  const [selectedType, setSelectedType] = useState(''); // Category selection state
   // Phase 1: Offline + Phase 2: GPS
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [gpsLocation, setGpsLocation] = useState(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [pendingOfflineCount, setPendingOfflineCount] = useState(0);
-
-  // Phase 1: Track online/offline status and process pending offline reports
-  useEffect(() => {
-    const goOnline = () => {
-      setIsOnline(true);
-      toast.success('🌐 Connection restored! Syncing offline reports...', { duration: 4000 });
-      syncOfflineReports();
-    };
-    const goOffline = () => {
-      setIsOnline(false);
-      toast.error('📵 You are offline. Reports will be saved locally.', { duration: 5000 });
-    };
-    window.addEventListener('online', goOnline);
-    window.addEventListener('offline', goOffline);
-    // Count any pending offline reports on mount
-    getOfflineReports().then(reports => setPendingOfflineCount(reports.length));
-    return () => {
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOffline);
-    };
-  }, []);
 
   // Sync queued offline reports to the backend when online
   const syncOfflineReports = useCallback(async () => {
@@ -79,10 +64,12 @@ export default function CreateReport() {
         try {
           let uploadedUrls = [];
           if (entry.images && entry.images.length > 0) {
-            const files = entry.images.map(img => base64ToFile(img.data, img.name, img.type));
+            const files = entry.images.map((img) => base64ToFile(img.data, img.name, img.type));
             const fd = new FormData();
-            files.forEach(f => fd.append('images', f));
-            const res = await api.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            files.forEach((f) => fd.append('images', f));
+            const res = await api.post('/upload', fd, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
             uploadedUrls = res.data.files || [];
           }
           await api.post('/reports', { ...entry.reportData, images: uploadedUrls });
@@ -100,6 +87,27 @@ export default function CreateReport() {
     }
   }, []);
 
+  // Phase 1: Track online/offline status and process pending offline reports
+  useEffect(() => {
+    const goOnline = () => {
+      setIsOnline(true);
+      toast.success('🌐 Connection restored! Syncing offline reports...', { duration: 4000 });
+      syncOfflineReports();
+    };
+    const goOffline = () => {
+      setIsOnline(false);
+      toast.error('📵 You are offline. Reports will be saved locally.', { duration: 5000 });
+    };
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    // Count any pending offline reports on mount
+    getOfflineReports().then((reports) => setPendingOfflineCount(reports.length));
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, [syncOfflineReports]);
+
   // Phase 2: Capture GPS Location
   const captureGPS = () => {
     if (!navigator.geolocation) {
@@ -111,7 +119,7 @@ export default function CreateReport() {
       (position) => {
         const coords = {
           lat: parseFloat(position.coords.latitude.toFixed(6)),
-          lng: parseFloat(position.coords.longitude.toFixed(6))
+          lng: parseFloat(position.coords.longitude.toFixed(6)),
         };
         setGpsLocation(coords);
         setGpsLoading(false);
@@ -131,25 +139,25 @@ export default function CreateReport() {
     const fetchSites = async () => {
       try {
         const res = await api.get('/sites');
-        
+
         // Filter sites assigned to this engineer
-        const assignedSites = res.data.filter(site => {
+        const assignedSites = res.data.filter((site) => {
           if (!site.assignedEngineers || !Array.isArray(site.assignedEngineers)) {
             return false;
           }
-          
-          return site.assignedEngineers.some(engineer => {
+
+          return site.assignedEngineers.some((engineer) => {
             const engineerId = typeof engineer === 'object' ? engineer._id : engineer;
             const userId = user?._id;
             return engineerId === userId;
           });
         });
-        
+
         setSites(assignedSites);
-        
+
         // If siteId is provided in URL, set it
         if (siteId && !formData.site) {
-          setFormData(prev => ({ ...prev, site: siteId }));
+          setFormData((prev) => ({ ...prev, site: siteId }));
         }
       } catch (error) {
         console.error('Error fetching sites:', error);
@@ -166,13 +174,17 @@ export default function CreateReport() {
           const res = await api.get(`/reports/${reportId}`);
           const report = res.data;
           setOriginalReport(report);
-          
+
           // Pre-fill form with existing report data
           // Make sure image URLs are complete
-          const completeImages = report.images ? report.images.map(img => 
-            img.startsWith('/uploads/') ? `${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://the-quality-pulse.onrender.com' : 'http://localhost:5000')}${img}` : img
-          ) : [];
-          
+          const completeImages = report.images
+            ? report.images.map((img) =>
+                img.startsWith('/uploads/')
+                  ? `${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://the-quality-pulse.onrender.com' : 'http://localhost:5000')}${img}`
+                  : img
+              )
+            : [];
+
           setFormData({
             site: report.site?._id || report.site || '',
             title: report.title || '',
@@ -184,9 +196,9 @@ export default function CreateReport() {
             recommendations: report.recommendations || '',
             comments: report.comments || '',
             images: report.images || [],
-            issues: report.issues || []
+            issues: report.issues || [],
           });
-          
+
           toast.success('Loaded existing report for editing');
         } catch (error) {
           console.error('Error loading report:', error);
@@ -217,7 +229,7 @@ export default function CreateReport() {
     'Roofing Material',
     'Window Installation',
     'HVAC System',
-    'Fire Safety System'
+    'Fire Safety System',
   ];
 
   // Add a new issue
@@ -226,45 +238,48 @@ export default function CreateReport() {
       toast.error('Issue description is required');
       return;
     }
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
-      issues: [...prev.issues, { 
-        description: newIssue.description.trim(),
-        severity: newIssue.severity 
-      }]
+      issues: [
+        ...prev.issues,
+        {
+          description: newIssue.description.trim(),
+          severity: newIssue.severity,
+        },
+      ],
     }));
     setNewIssue({ description: '', severity: 'Medium' });
   };
 
   // Remove an issue
   const removeIssue = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      issues: prev.issues.filter((_, i) => i !== index)
+      issues: prev.issues.filter((_, i) => i !== index),
     }));
   };
 
   // Upload images to server
   const uploadImages = async (files) => {
     if (files.length === 0) return [];
-    
+
     try {
       setUploadingImages(true);
       const formData = new FormData();
-      
+
       // Add each file to FormData
-      files.forEach(file => {
+      files.forEach((file) => {
         formData.append('images', file);
       });
-      
+
       // Upload to server
       const response = await api.post('/upload', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+        },
       });
-      
+
       return response.data.files || [];
     } catch (error) {
       console.error('Error uploading images:', error);
@@ -277,27 +292,45 @@ export default function CreateReport() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.site) { toast.error('Please select a site'); return; }
-    if (!formData.title.trim()) { toast.error('Report title is required'); return; }
-    if (!formData.materialTested.trim()) { toast.error('Material tested is required'); return; }
+
+    if (!formData.site) {
+      toast.error('Please select a site');
+      return;
+    }
+    if (!formData.title.trim()) {
+      toast.error('Report title is required');
+      return;
+    }
+    if (!formData.materialTested.trim()) {
+      toast.error('Material tested is required');
+      return;
+    }
 
     // Phase 1: If offline, save to IndexedDB and queue for later sync
     if (!navigator.onLine) {
       try {
         const reportData = {
-          site: formData.site, title: formData.title.trim(),
-          materialTested: formData.materialTested.trim(), testResult: formData.testResult,
-          complianceStatus: formData.complianceStatus, description: formData.description.trim(),
-          findings: formData.findings.trim(), recommendations: formData.recommendations.trim(),
+          site: formData.site,
+          title: formData.title.trim(),
+          materialTested: formData.materialTested.trim(),
+          testResult: formData.testResult,
+          complianceStatus: formData.complianceStatus,
+          description: formData.description.trim(),
+          findings: formData.findings.trim(),
+          recommendations: formData.recommendations.trim(),
           comments: formData.comments.trim(),
-          issues: formData.issues.map(i => ({ description: i.description, severity: i.severity })),
-          location: gpsLocation || undefined
+          issues: formData.issues.map((i) => ({
+            description: i.description,
+            severity: i.severity,
+          })),
+          location: gpsLocation || undefined,
         };
         await saveOfflineReport(reportData, imageFiles);
         const remaining = await getOfflineReports();
         setPendingOfflineCount(remaining.length);
-        toast.success('📥 Report saved offline! Will auto-submit when connection is restored.', { duration: 6000 });
+        toast.success('📥 Report saved offline! Will auto-submit when connection is restored.', {
+          duration: 6000,
+        });
         navigate('/reports');
       } catch (err) {
         toast.error('Failed to save report offline.');
@@ -306,7 +339,7 @@ export default function CreateReport() {
     }
 
     setLoading(true);
-    
+
     try {
       // Upload new images if any
       let uploadedImageUrls = [];
@@ -314,21 +347,21 @@ export default function CreateReport() {
         toast.loading('Uploading images...');
         uploadedImageUrls = await uploadImages(imageFiles);
         toast.dismiss();
-        
+
         if (uploadedImageUrls.length === 0) {
           toast.error('Failed to upload images');
           setLoading(false);
           return;
         }
       }
-      
+
       // Combine existing images with newly uploaded ones
-      const existingImages = formData.images.filter(img => 
-        typeof img === 'string' && !img.startsWith('blob:')
+      const existingImages = formData.images.filter(
+        (img) => typeof img === 'string' && !img.startsWith('blob:')
       );
-      
+
       const allImages = [...existingImages, ...uploadedImageUrls];
-      
+
       const reportData = {
         site: formData.site,
         title: formData.title.trim(),
@@ -339,19 +372,19 @@ export default function CreateReport() {
         findings: formData.findings.trim(),
         recommendations: formData.recommendations.trim(),
         comments: formData.comments.trim(),
-        issues: formData.issues.map(issue => ({
+        issues: formData.issues.map((issue) => ({
           description: issue.description,
-          severity: issue.severity
+          severity: issue.severity,
         })),
         images: allImages,
         // Phase 2: Attach GPS coordinates if captured
-        location: gpsLocation || undefined
+        location: gpsLocation || undefined,
       };
-      
+
       console.log('Submitting report data:', reportData);
-      
+
       let response;
-      
+
       if (isEditMode && (id || editReportId)) {
         // Update existing report
         const reportId = id || editReportId;
@@ -366,7 +399,7 @@ export default function CreateReport() {
         console.log('Report created successfully:', response.data);
         toast.success('Report created successfully!');
       }
-      
+
       navigate('/reports');
     } catch (err) {
       console.error('Report submission error:', err);
@@ -379,28 +412,28 @@ export default function CreateReport() {
   // Handle file input change
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    
+
     // Limit to 5 images
     if (files.length + imageFiles.length > 5) {
       toast.error('Maximum 5 images allowed');
       return;
     }
-    
+
     // Check file sizes
     const maxSize = 5 * 1024 * 1024; // 5MB
-    const oversizedFiles = files.filter(file => file.size > maxSize);
+    const oversizedFiles = files.filter((file) => file.size > maxSize);
     if (oversizedFiles.length > 0) {
       toast.error('Some images exceed 5MB limit');
       return;
     }
-    
-    setImageFiles(prev => [...prev, ...files]);
-    
+
+    setImageFiles((prev) => [...prev, ...files]);
+
     // Create preview URLs for display
-    const newImagePreviews = files.map(file => URL.createObjectURL(file));
-    setFormData(prev => ({
+    const newImagePreviews = files.map((file) => URL.createObjectURL(file));
+    setFormData((prev) => ({
       ...prev,
-      images: [...prev.images, ...newImagePreviews]
+      images: [...prev.images, ...newImagePreviews],
     }));
   };
 
@@ -412,7 +445,7 @@ export default function CreateReport() {
         Image ${index + 1}
       </text>
     </svg>`;
-    
+
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgContent)}`;
   };
 
@@ -454,7 +487,7 @@ export default function CreateReport() {
             >
               <FiArrowLeft className="text-lg" />
             </button>
-            
+
             <div className="flex-1">
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
@@ -467,25 +500,31 @@ export default function CreateReport() {
                 )}
               </div>
               <p className="text-slate-600 dark:text-slate-400 mt-2">
-                {siteName ? `For site: ${siteName}` : isEditMode ? 'Edit existing report' : 'Create a new quality assurance report'}
+                {siteName
+                  ? `For site: ${siteName}`
+                  : isEditMode
+                    ? 'Edit existing report'
+                    : 'Create a new quality assurance report'}
               </p>
               {originalReport && (
                 <div className="mt-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-700 dark:text-yellow-400 text-sm">
-                  {originalReport.status === 'Rejected' 
+                  {originalReport.status === 'Rejected'
                     ? 'This report was rejected. Please review and update the information before re-submitting.'
                     : 'Editing existing report. Changes will update the current report.'}
                 </div>
               )}
             </div>
           </div>
-          
+
           {/* Phase 1: Offline Status Banner */}
           {!isOnline && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-center gap-3">
               <FiWifiOff className="text-red-500 flex-shrink-0 text-lg" />
               <div>
                 <p className="font-semibold text-red-700 dark:text-red-400">You are offline</p>
-                <p className="text-sm text-red-600 dark:text-red-500">Your report will be saved locally and auto-submitted when connection restores.</p>
+                <p className="text-sm text-red-600 dark:text-red-500">
+                  Your report will be saved locally and auto-submitted when connection restores.
+                </p>
               </div>
             </div>
           )}
@@ -493,34 +532,71 @@ export default function CreateReport() {
             <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex items-center gap-3">
               <FiWifi className="text-blue-500 flex-shrink-0 text-lg" />
               <div className="flex-1">
-                <p className="font-semibold text-blue-700 dark:text-blue-400">{pendingOfflineCount} offline report(s) pending sync</p>
-                <p className="text-sm text-blue-600 dark:text-blue-500">These will be automatically submitted.</p>
+                <p className="font-semibold text-blue-700 dark:text-blue-400">
+                  {pendingOfflineCount} offline report(s) pending sync
+                </p>
+                <p className="text-sm text-blue-600 dark:text-blue-500">
+                  These will be automatically submitted.
+                </p>
               </div>
-              <button type="button" onClick={syncOfflineReports}
-                className="text-xs px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+              <button
+                type="button"
+                onClick={syncOfflineReports}
+                className="text-xs px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
                 Sync Now
               </button>
             </div>
           )}
 
-          <form 
-            onSubmit={handleSubmit} 
+          <form
+            onSubmit={handleSubmit}
             onMouseEnter={() => setIsFormHovered(true)}
             onMouseLeave={() => setIsFormHovered(false)}
             className={`space-y-6 p-4 md:p-6 transition-all duration-300
               bg-white dark:bg-slate-800 
               border border-slate-200 dark:border-slate-700 
               rounded-lg 
-              ${isFormHovered 
-                ? 'shadow-xl shadow-yellow-500/50 border-yellow-500/30' 
-                : 'shadow-lg'
+              ${
+                isFormHovered ? 'shadow-xl shadow-yellow-500/50 border-yellow-500/30' : 'shadow-lg'
               }`}
           >
             <div className="space-y-4">
+              {/* Site Category Selection - NEW */}
+              <div>
+                <label className="block font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Engineering Project Category
+                </label>
+                <select
+                  className="w-full p-3 rounded-lg transition-all duration-200
+                    bg-white dark:bg-slate-900 
+                    border border-slate-300 dark:border-slate-600 
+                    text-slate-700 dark:text-slate-300
+                    focus:outline-none focus:border-yellow-500 dark:focus:border-yellow-500 
+                    focus:ring-2 focus:ring-yellow-500/20 dark:focus:ring-yellow-500/30
+                    disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-500 dark:disabled:text-slate-500"
+                  value={selectedType}
+                  onChange={(e) => {
+                    setSelectedType(e.target.value);
+                    setFormData({ ...formData, site: '' });
+                  }}
+                  disabled={!!siteId || isEditMode}
+                >
+                  <option value="">All Categories (Show All Sites)</option>
+                  {Array.from(new Set(sites.map((s) => s.type || 'General Projects')))
+                    .sort()
+                    .map((type) => (
+                      <option key={type} value={type}>
+                        {type.toUpperCase()}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
               {/* Site Selection */}
               <div>
                 <label className="block font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Site *
+                  Project Site *
                 </label>
                 <select
                   className="w-full p-3 rounded-lg transition-all duration-200
@@ -535,23 +611,16 @@ export default function CreateReport() {
                   required
                   disabled={!!siteId || isEditMode}
                 >
-                  <option value="">Select Site</option>
-                  {Object.entries(
-                    sites.reduce((acc, site) => {
-                      const type = site.type || 'General Projects';
-                      if (!acc[type]) acc[type] = [];
-                      acc[type].push(site);
-                      return acc;
-                    }, {})
-                  ).sort(([a], [b]) => a.localeCompare(b)).map(([type, group]) => (
-                    <optgroup key={type} label={type.toUpperCase()}>
-                      {group.map(site => (
-                        <option key={site._id} value={site._id}>
-                          {site.name} - {site.location || `${site.city}, ${site.country}`}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
+                  <option value="">
+                    {selectedType ? `Select Site in ${selectedType}` : 'Select Site'}
+                  </option>
+                  {sites
+                    .filter((s) => !selectedType || (s.type || 'General Projects') === selectedType)
+                    .map((site) => (
+                      <option key={site._id} value={site._id}>
+                        {site.name} - {site.location || `${site.city}, ${site.country}`}
+                      </option>
+                    ))}
                 </select>
                 {sites.length === 0 && user?.role === 'Engineer' && (
                   <p className="text-sm text-red-500 dark:text-red-400 mt-2">
@@ -599,7 +668,9 @@ export default function CreateReport() {
                 >
                   <option value="">Select Material/Test</option>
                   {materials.map((mat) => (
-                    <option key={mat} value={mat}>{mat}</option>
+                    <option key={mat} value={mat}>
+                      {mat}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -713,10 +784,13 @@ export default function CreateReport() {
                 </label>
                 <div className="space-y-3 mb-4">
                   {formData.issues.map((issue, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 
                       bg-red-500/10 dark:bg-red-500/20 
                       border border-red-500/20 dark:border-red-500/30 
-                      rounded-lg">
+                      rounded-lg"
+                    >
                       <div>
                         <p className="font-medium text-red-700 dark:text-red-300">
                           {issue.description}
@@ -739,9 +813,11 @@ export default function CreateReport() {
                 </div>
 
                 {/* Add New Issue Form */}
-                <div className="space-y-3 p-3 
+                <div
+                  className="space-y-3 p-3 
                   border border-slate-300 dark:border-slate-700 
-                  rounded-lg bg-slate-50 dark:bg-slate-900/50">
+                  rounded-lg bg-slate-50 dark:bg-slate-900/50"
+                >
                   <textarea
                     className="w-full p-3 rounded-lg transition-all duration-200
                       bg-white dark:bg-slate-800 
@@ -850,7 +926,7 @@ export default function CreateReport() {
                       {formData.images.map((image, index) => {
                         // Check if it's a blob URL (preview) or server URL
                         const isBlobUrl = image.startsWith('blob:');
-                        
+
                         return (
                           <div key={index} className="relative group">
                             <img
@@ -870,14 +946,14 @@ export default function CreateReport() {
                               type="button"
                               onClick={() => {
                                 // Remove image preview
-                                setFormData(prev => ({
+                                setFormData((prev) => ({
                                   ...prev,
-                                  images: prev.images.filter((_, i) => i !== index)
+                                  images: prev.images.filter((_, i) => i !== index),
                                 }));
-                                
+
                                 // Also remove from imageFiles if it's a new file (blob URL)
                                 if (isBlobUrl) {
-                                  setImageFiles(prev => {
+                                  setImageFiles((prev) => {
                                     const newFiles = [...prev];
                                     newFiles.splice(index, 1);
                                     return newFiles;
@@ -895,7 +971,6 @@ export default function CreateReport() {
                     </div>
                   </div>
                 )}
-
               </div>
             </div>
 
@@ -908,56 +983,117 @@ export default function CreateReport() {
                       <FiMapPin className="text-yellow-500" /> GPS Verification
                     </p>
                     {gpsLocation ? (
-                      <p className="text-sm text-green-600 dark:text-green-400 mt-1">✅ Location: {gpsLocation.lat}, {gpsLocation.lng}</p>
+                      <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                        ✅ Location: {gpsLocation.lat}, {gpsLocation.lng}
+                      </p>
                     ) : (
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Capture GPS coordinates to verify on-site inspection</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Capture GPS coordinates to verify on-site inspection
+                      </p>
                     )}
                   </div>
-                  <button type="button" onClick={captureGPS} disabled={gpsLoading}
-                    className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <button
+                    type="button"
+                    onClick={captureGPS}
+                    disabled={gpsLoading}
+                    className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     {gpsLoading ? (
-                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      <svg
+                        className="animate-spin h-4 w-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        ></path>
                       </svg>
-                    ) : <FiMapPin />}
-                    {gpsLoading ? 'Getting Location...' : gpsLocation ? 'Recapture GPS' : 'Capture GPS'}
+                    ) : (
+                      <FiMapPin />
+                    )}
+                    {gpsLoading
+                      ? 'Getting Location...'
+                      : gpsLocation
+                        ? 'Recapture GPS'
+                        : 'Capture GPS'}
                   </button>
                 </div>
               </div>
 
-              <button type="submit" disabled={loading || uploadingImages}
+              <button
+                type="submit"
+                disabled={loading || uploadingImages}
                 className="w-full py-3 text-lg font-medium rounded-lg transition-all duration-200
                   bg-gradient-to-r from-yellow-500 to-yellow-600 text-slate-900
                   hover:from-yellow-600 hover:to-yellow-700 hover:shadow-lg hover:shadow-yellow-500/25
                   active:scale-[0.99] disabled:from-yellow-300 disabled:to-yellow-400 disabled:cursor-not-allowed
                   disabled:shadow-none flex items-center justify-center"
               >
-                {(loading || uploadingImages) ? (
+                {loading || uploadingImages ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-slate-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-slate-900"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
-                    {uploadingImages ? 'Uploading Images...' : isEditMode ? 'Updating Report...' : 'Creating Report...'}
+                    {uploadingImages
+                      ? 'Uploading Images...'
+                      : isEditMode
+                        ? 'Updating Report...'
+                        : 'Creating Report...'}
                   </>
+                ) : isEditMode ? (
+                  'Update Report'
+                ) : !isOnline ? (
+                  '📥 Save Offline'
                 ) : (
-                  isEditMode ? 'Update Report' : (!isOnline ? '📥 Save Offline' : 'Submit Report')
+                  'Submit Report'
                 )}
               </button>
-              
+
               <div className="flex justify-between">
-                <button type="button" onClick={() => navigate('/reports')}
+                <button
+                  type="button"
+                  onClick={() => navigate('/reports')}
                   className="px-4 py-2 rounded-lg font-medium transition-all duration-200
                     text-yellow-600 dark:text-yellow-500 hover:text-yellow-700 dark:hover:text-yellow-400
-                    hover:bg-yellow-50 dark:hover:bg-yellow-500/10">
+                    hover:bg-yellow-50 dark:hover:bg-yellow-500/10"
+                >
                   Cancel and return to reports
                 </button>
                 {isEditMode && originalReport && (
-                  <a href={`/reports/${originalReport._id}`}
+                  <a
+                    href={`/reports/${originalReport._id}`}
                     className="px-4 py-2 rounded-lg font-medium transition-all duration-200
                       text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300
-                      hover:bg-slate-100 dark:hover:bg-slate-700/50">
+                      hover:bg-slate-100 dark:hover:bg-slate-700/50"
+                  >
                     View original report
                   </a>
                 )}

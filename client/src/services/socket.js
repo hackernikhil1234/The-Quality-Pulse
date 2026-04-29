@@ -1,10 +1,9 @@
 // client/src/services/socket.js - SIMPLIFIED VERSION
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.PROD 
-    ? 'https://the-quality-pulse.onrender.com' 
-    : 'http://localhost:5000');
+const SOCKET_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? 'https://the-quality-pulse.onrender.com' : 'http://localhost:5000');
 
 class SocketService {
   constructor() {
@@ -27,11 +26,11 @@ class SocketService {
     }
 
     console.log(`Connecting socket for user ${userId}`);
-    
+
     try {
       // Get token if available, but don't fail if it's not there
       const token = localStorage.getItem('token');
-      
+
       this.socket = io(SOCKET_URL, {
         withCredentials: true,
         transports: ['websocket', 'polling'],
@@ -39,11 +38,11 @@ class SocketService {
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         timeout: 10000,
-        query: token ? { token, userId } : { userId }
+        query: token ? { token, userId } : { userId },
       });
 
       this.setupEventListeners();
-      
+
       return this.socket;
     } catch (error) {
       console.error('Failed to create socket connection:', error);

@@ -12,7 +12,8 @@ const getIoFromRequest = (req) => {
 // Send notification
 router.post('/send', protect, async (req, res) => {
   try {
-    const { userId, title, message, type, priority, metadata, actionUrl, expiresInHours } = req.body;
+    const { userId, title, message, type, priority, metadata, actionUrl, expiresInHours } =
+      req.body;
 
     const notification = await Notification.create({
       userId,
@@ -22,9 +23,9 @@ router.post('/send', protect, async (req, res) => {
       priority: priority || 'medium',
       metadata: metadata || {},
       actionUrl,
-      expiresAt: expiresInHours 
+      expiresAt: expiresInHours
         ? new Date(Date.now() + expiresInHours * 60 * 60 * 1000)
-        : undefined
+        : undefined,
     });
 
     // Real-time notification (Socket.io)
@@ -33,14 +34,14 @@ router.post('/send', protect, async (req, res) => {
       console.log(`[Socket] Broadcasting live notification to connected user_${userId}`);
       io.to(`user_${userId}`).emit('newNotification', {
         ...notification.toObject(),
-        read: false
+        read: false,
       });
     }
 
     res.json({
       success: true,
       message: 'Notification sent successfully',
-      notification
+      notification,
     });
   } catch (error) {
     console.error('Error sending notification:', error);
@@ -53,10 +54,7 @@ router.get('/user/:userId', protect, async (req, res) => {
   try {
     const notifications = await Notification.find({
       userId: req.params.userId,
-      $or: [
-        { expiresAt: { $exists: false } },
-        { expiresAt: { $gt: new Date() } }
-      ]
+      $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
     })
       .sort({ createdAt: -1 })
       .limit(50);
@@ -84,7 +82,7 @@ router.put('/:id/read', protect, async (req, res) => {
     res.json({
       success: true,
       message: 'Notification marked as read',
-      notification
+      notification,
     });
   } catch (error) {
     console.error('Error marking notification as read:', error);
@@ -98,14 +96,14 @@ router.put('/user/:userId/mark-all-read', protect, async (req, res) => {
     await Notification.updateMany(
       {
         userId: req.params.userId,
-        read: false
+        read: false,
       },
       { read: true }
     );
 
     res.json({
       success: true,
-      message: 'All notifications marked as read'
+      message: 'All notifications marked as read',
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to mark notifications as read' });

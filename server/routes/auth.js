@@ -10,7 +10,12 @@ const User = require('../models/User');
 const NotificationService = require('../services/notificationService');
 const emailService = require('../services/emailService');
 const validateRequest = require('../middleware/validateRequest');
-const { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } = require('../schemas');
+const {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} = require('../schemas');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret123';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh_supersecret_123';
@@ -32,7 +37,9 @@ router.post('/refresh-token', (req, res) => {
     const newAccessToken = jwt.sign({ id: decoded.id }, JWT_SECRET, { expiresIn: '15m' });
     res.json({ token: newAccessToken });
   } catch (err) {
-    return res.status(403).json({ message: 'Invalid or expired refresh token. Please log in again.' });
+    return res
+      .status(403)
+      .json({ message: 'Invalid or expired refresh token. Please log in again.' });
   }
 });
 
@@ -43,7 +50,8 @@ router.post('/forgot-password', validateRequest(forgotPasswordSchema), async (re
     const user = await User.findOne({ email: email.toLowerCase() });
 
     // Always respond generically to prevent email enumeration
-    const genericMessage = 'If an account with that email exists, a password reset link has been sent.';
+    const genericMessage =
+      'If an account with that email exists, a password reset link has been sent.';
 
     if (!user) {
       return res.json({ success: true, message: genericMessage });
@@ -59,11 +67,13 @@ router.post('/forgot-password', validateRequest(forgotPasswordSchema), async (re
 
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${rawToken}`;
 
-    emailService.sendPasswordResetEmail({
-      email: user.email,
-      name: user.name,
-      resetUrl,
-    }).catch(err => console.error('Password reset email failed (non-critical):', err.message));
+    emailService
+      .sendPasswordResetEmail({
+        email: user.email,
+        name: user.name,
+        resetUrl,
+      })
+      .catch((err) => console.error('Password reset email failed (non-critical):', err.message));
 
     res.json({ success: true, message: genericMessage });
   } catch (err) {
@@ -107,7 +117,10 @@ router.post('/reset-password/:token', validateRequest(resetPasswordSchema), asyn
 // Step 1: Generate 2FA Secret + QR Code
 router.post('/2fa/setup', protect, async (req, res) => {
   try {
-    const secret = speakeasy.generateSecret({ name: `QualityPulse (${req.user.email})`, length: 20 });
+    const secret = speakeasy.generateSecret({
+      name: `QualityPulse (${req.user.email})`,
+      length: 20,
+    });
     // Store temp secret on user until they verify
     await User.findByIdAndUpdate(req.user._id, { twoFactorTempSecret: secret.base32 });
     const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url);
@@ -122,20 +135,21 @@ router.post('/2fa/verify', protect, async (req, res) => {
   try {
     const { token } = req.body;
     const user = await User.findById(req.user._id);
-    if (!user.twoFactorTempSecret) return res.status(400).json({ message: '2FA setup not initiated' });
+    if (!user.twoFactorTempSecret)
+      return res.status(400).json({ message: '2FA setup not initiated' });
 
     const verified = speakeasy.totp.verify({
       secret: user.twoFactorTempSecret,
       encoding: 'base32',
       token,
-      window: 2
+      window: 2,
     });
     if (!verified) return res.status(400).json({ message: 'Invalid OTP code. Please try again.' });
 
     await User.findByIdAndUpdate(req.user._id, {
       twoFactorSecret: user.twoFactorTempSecret,
       twoFactorEnabled: true,
-      twoFactorTempSecret: null
+      twoFactorTempSecret: null,
     });
     res.json({ success: true, message: '2FA enabled successfully!' });
   } catch (err) {
@@ -147,7 +161,9 @@ router.post('/2fa/verify', protect, async (req, res) => {
 router.post('/2fa/disable', protect, async (req, res) => {
   try {
     await User.findByIdAndUpdate(req.user._id, {
-      twoFactorSecret: null, twoFactorEnabled: false, twoFactorTempSecret: null
+      twoFactorSecret: null,
+      twoFactorEnabled: false,
+      twoFactorTempSecret: null,
     });
     res.json({ success: true, message: '2FA disabled.' });
   } catch (err) {
@@ -160,20 +176,29 @@ router.post('/2fa/validate', async (req, res) => {
   try {
     const { userId, token } = req.body;
     const user = await User.findById(userId);
-    if (!user || !user.twoFactorEnabled) return res.status(400).json({ message: 'Invalid request' });
+    if (!user || !user.twoFactorEnabled)
+      return res.status(400).json({ message: 'Invalid request' });
 
     const verified = speakeasy.totp.verify({
       secret: user.twoFactorSecret,
       encoding: 'base32',
       token,
-      window: 2
+      window: 2,
     });
     if (!verified) return res.status(401).json({ message: 'Invalid 2FA code' });
 
     const accessToken = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '15m' });
     const refreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, { expiresIn: '30d' });
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
-    res.json({ token: accessToken, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    res.json({
+      token: accessToken,
+      user: { _id: user._id, name: user.name, email: user.email, role: user.role },
+    });
   } catch (err) {
     res.status(500).json({ message: 'Failed to validate 2FA' });
   }
@@ -184,7 +209,9 @@ router.get('/users', protect, async (req, res) => {
   try {
     const { role } = req.query;
     const query = role ? { role } : {};
-    const users = await User.find(query).select('name email role avatar phone countryCode isActive');
+    const users = await User.find(query).select(
+      'name email role avatar phone countryCode isActive'
+    );
     res.json(users);
   } catch (err) {
     console.error('Get users error:', err);
@@ -196,7 +223,7 @@ router.get('/users', protect, async (req, res) => {
 router.put('/:id/deactivate', protect, authorize('Admin'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -214,16 +241,16 @@ router.put('/:id/deactivate', protect, authorize('Admin'), async (req, res) => {
     const io = req.app.get('io');
     await NotificationService.notifyAccountDeactivated(user._id, req.user._id, io);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'User account deactivated successfully',
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         isActive: user.isActive,
-        deactivatedAt: user.deactivatedAt
-      }
+        deactivatedAt: user.deactivatedAt,
+      },
     });
   } catch (error) {
     console.error('Error deactivating user:', error);
@@ -235,7 +262,7 @@ router.put('/:id/deactivate', protect, authorize('Admin'), async (req, res) => {
 router.put('/:id/reactivate', protect, authorize('Admin'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -245,15 +272,15 @@ router.put('/:id/reactivate', protect, authorize('Admin'), async (req, res) => {
     user.deactivatedAt = null;
     await user.save();
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'User account reactivated successfully',
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        isActive: user.isActive
-      }
+        isActive: user.isActive,
+      },
     });
   } catch (error) {
     console.error('Error reactivating user:', error);
@@ -265,42 +292,41 @@ router.put('/:id/reactivate', protect, authorize('Admin'), async (req, res) => {
 router.put('/profile', protect, async (req, res) => {
   try {
     const { name, phone, countryCode, avatar } = req.body;
-    
+
     console.log('Updating profile for user:', req.user._id);
     console.log('Update data:', { name, phone, countryCode, avatar });
-    
+
     const updateData = {};
     if (name) updateData.name = name;
     if (phone !== undefined) updateData.phone = phone;
     if (countryCode) updateData.countryCode = countryCode;
     if (avatar) updateData.avatar = avatar;
-    
+
     // Also update updatedAt timestamp
     updateData.updatedAt = Date.now();
-    
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
-    
+
+    const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, {
+      new: true,
+      runValidators: true,
+    }).select('-password');
+
     if (!updatedUser) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     console.log('Profile updated successfully:', updatedUser);
-    
-    res.json({ 
+
+    res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: updatedUser 
+      user: updatedUser,
     });
   } catch (error) {
     console.error('Profile update error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: 'Error updating profile',
-      error: error.message 
+      error: error.message,
     });
   }
 });
@@ -309,56 +335,56 @@ router.put('/profile', protect, async (req, res) => {
 router.put('/change-password', protect, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    
+
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'All fields are required' 
+        message: 'All fields are required',
       });
     }
-    
+
     if (newPassword.length < 6) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters' 
+        message: 'Password must be at least 6 characters',
       });
     }
-    
+
     const user = await User.findById(req.user._id).select('+password');
-    
+
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'User not found' 
+        message: 'User not found',
       });
     }
-    
+
     // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Current password is incorrect' 
+        message: 'Current password is incorrect',
       });
     }
-    
+
     // Hash new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
     user.updatedAt = Date.now();
-    
+
     await user.save();
-    
-    res.json({ 
+
+    res.json({
       success: true,
-      message: 'Password changed successfully' 
+      message: 'Password changed successfully',
     });
   } catch (error) {
     console.error('Password change error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: 'Error changing password',
-      error: error.message 
+      error: error.message,
     });
   }
 });

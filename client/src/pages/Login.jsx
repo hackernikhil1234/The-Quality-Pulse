@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { FiMail, FiLock, FiLoader, FiSun, FiMoon } from 'react-icons/fi';
-import loginVideo from '../assets/bglogin.mp4'; 
+import loginVideo from '../assets/bglogin.mp4';
 
 // --- THEME MANAGER HOOK ---
 const useTheme = () => {
@@ -12,7 +12,7 @@ const useTheme = () => {
   useEffect(() => {
     // 1. Check if user has a saved theme preference
     const savedTheme = localStorage.getItem('theme');
-    
+
     if (savedTheme) {
       // Use saved user preference
       setTheme(savedTheme);
@@ -21,20 +21,20 @@ const useTheme = () => {
       // 2. Check device preference
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const deviceTheme = prefersDark ? 'dark' : 'light';
-      
+
       // 3. Check system time for smart theme (optional)
       const hour = new Date().getHours();
       const isNightTime = hour >= 18 || hour <= 6;
-      
+
       // Decision logic: Device preference + time-based adjustment
       let initialTheme = deviceTheme;
       if (isNightTime && deviceTheme === 'light') {
         initialTheme = 'dark'; // Switch to dark at night even if device prefers light
       }
-      
+
       setTheme(initialTheme);
       applyTheme(initialTheme);
-      
+
       // Save initial theme to localStorage
       localStorage.setItem('theme', initialTheme);
     }
@@ -72,7 +72,7 @@ const SeamlessVideo = ({ src, duration = 7000, crossfade = 1000 }) => {
 
     const startLoop = () => {
       timeoutRef.current = setInterval(() => {
-        setActivePlayer(prev => {
+        setActivePlayer((prev) => {
           const next = prev === 1 ? 2 : 1;
           const nextPlayer = next === 1 ? player1Ref.current : player2Ref.current;
           nextPlayer.currentTime = 0;
@@ -87,8 +87,26 @@ const SeamlessVideo = ({ src, duration = 7000, crossfade = 1000 }) => {
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden bg-black">
-      <video ref={player1Ref} muted playsInline className={`absolute inset-0 w-full h-full object-cover transition-opacity ease-linear duration-[1000ms] ${activePlayer === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}><source src={src} type="video/mp4" /></video>
-      <video ref={player2Ref} muted playsInline className={`absolute inset-0 w-full h-full object-cover transition-opacity ease-linear duration-[1000ms] ${activePlayer === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}><source src={src} type="video/mp4" /></video>
+      <video
+        ref={player1Ref}
+        muted
+        playsInline
+        autoPlay
+        loop
+        preload="auto"
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity ease-linear duration-[1000ms] ${activePlayer === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+      >
+        <source src={src} type="video/mp4" />
+      </video>
+      <video
+        ref={player2Ref}
+        muted
+        playsInline
+        preload="auto"
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity ease-linear duration-[1000ms] ${activePlayer === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+      >
+        <source src={src} type="video/mp4" />
+      </video>
     </div>
   );
 };
@@ -106,7 +124,7 @@ export default function Login() {
     if (location.state?.email) {
       setFormData({
         identifier: location.state.email,
-        password: location.state.password || ''
+        password: location.state.password || '',
       });
     }
   }, [location.state]);
@@ -137,9 +155,8 @@ export default function Login() {
   return (
     // Outer container handles the dark/light context text colors
     <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden font-sans text-slate-900 dark:text-white transition-colors duration-300">
-      
       {/* 1. SEAMLESS BACKGROUND VIDEO */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-[-1]">
         <SeamlessVideo src={loginVideo} duration={7000} crossfade={1500} />
       </div>
 
@@ -168,19 +185,22 @@ export default function Login() {
       </button>
 
       {/* 3. LOGIN CARD */}
-      <div className="relative z-10 w-full max-w-md p-10 space-y-8 
+      <div
+        className="relative z-10 w-full max-w-md p-10 space-y-8 
         bg-white/80 dark:bg-slate-800/60 
         backdrop-blur-xl rounded-sm 
         shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] 
         border border-slate-200 dark:border-slate-700 
-        transition-all duration-300">
-        
+        transition-all duration-300"
+      >
         {/* Decorative Caution Tape Strip (Top of Card) */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-600"></div>
 
         <div className="text-center">
           <div className="inline-block mb-4 px-3 py-1 border border-yellow-500/30 rounded-full bg-yellow-500/10">
-            <span className="text-yellow-600 dark:text-yellow-400 text-xs font-mono tracking-widest uppercase">● Secure Access</span>
+            <span className="text-yellow-600 dark:text-yellow-400 text-xs font-mono tracking-widest uppercase">
+              ● Secure Access
+            </span>
           </div>
           <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">
             Login
@@ -240,19 +260,27 @@ export default function Login() {
               />
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between text-sm">
-             <div className="flex items-center">
-              <input 
-                id="remember-me" 
-                name="remember-me" 
-                type="checkbox" 
-                className="h-4 w-4 text-yellow-500 border-slate-300 dark:border-slate-600 rounded bg-slate-100 dark:bg-slate-800 focus:ring-yellow-500" 
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                className="h-4 w-4 text-yellow-500 border-slate-300 dark:border-slate-600 rounded bg-slate-100 dark:bg-slate-800 focus:ring-yellow-500"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-slate-700 dark:text-slate-300">Remember me</label>
+              <label
+                htmlFor="remember-me"
+                className="ml-2 block text-slate-700 dark:text-slate-300"
+              >
+                Remember me
+              </label>
             </div>
             <div>
-              <Link to="/forgot-password" className="font-bold text-yellow-600 hover:text-yellow-700 dark:text-yellow-500 dark:hover:text-yellow-400 transition-colors">
+              <Link
+                to="/forgot-password"
+                className="font-bold text-yellow-600 hover:text-yellow-700 dark:text-yellow-500 dark:hover:text-yellow-400 transition-colors"
+              >
                 Recover Password?
               </Link>
             </div>
@@ -268,13 +296,14 @@ export default function Login() {
               disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading ? (
-               <span className="flex items-center gap-3">
-                 <FiLoader className="animate-spin h-6 w-6" />
-                 Authenticating...
-               </span>
+              <span className="flex items-center gap-3">
+                <FiLoader className="animate-spin h-6 w-6" />
+                Authenticating...
+              </span>
             ) : (
               <span className="flex items-center gap-2">
-                LOGIN ACCESS <span className="group-hover:translate-x-1 transition-transform">→</span>
+                LOGIN ACCESS{' '}
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
               </span>
             )}
           </button>
@@ -282,7 +311,10 @@ export default function Login() {
 
         <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
           New to the site?{' '}
-          <Link to="/register" className="font-bold text-slate-900 dark:text-white hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors underline decoration-yellow-500 decoration-2 underline-offset-4">
+          <Link
+            to="/register"
+            className="font-bold text-slate-900 dark:text-white hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors underline decoration-yellow-500 decoration-2 underline-offset-4"
+          >
             Initialize Account
           </Link>
         </p>

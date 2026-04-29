@@ -6,11 +6,11 @@ const DB_VERSION = 1;
 export const initDB = () => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    
+
     request.onerror = (e) => reject('IndexedDB error: ' + e.target.error);
-    
+
     request.onsuccess = (e) => resolve(e.target.result);
-    
+
     request.onupgradeneeded = (e) => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -23,13 +23,14 @@ export const initDB = () => {
 export const saveOfflineReport = async (reportData, imageFiles) => {
   try {
     const db = await initDB();
-    
+
     // Convert image files to Base64 strings so they can be securely saved in IndexedDB
     const base64Images = await Promise.all(
-      imageFiles.map(file => {
+      imageFiles.map((file) => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
-          reader.onloadend = () => resolve({ name: file.name, type: file.type, data: reader.result });
+          reader.onloadend = () =>
+            resolve({ name: file.name, type: file.type, data: reader.result });
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
@@ -40,14 +41,14 @@ export const saveOfflineReport = async (reportData, imageFiles) => {
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
       reportData,
-      images: base64Images
+      images: base64Images,
     };
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       const request = store.add(payload);
-      
+
       request.onsuccess = () => resolve(payload.id);
       request.onerror = () => reject('Failed to save offline report');
     });
@@ -64,7 +65,7 @@ export const getOfflineReports = async () => {
       const transaction = db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const request = store.getAll();
-      
+
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject('Failed to retrieve offline reports');
     });
@@ -81,7 +82,7 @@ export const deleteOfflineReport = async (id) => {
       const transaction = db.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       const request = store.delete(id);
-      
+
       request.onsuccess = () => resolve();
       request.onerror = () => reject('Failed to delete offline report');
     });

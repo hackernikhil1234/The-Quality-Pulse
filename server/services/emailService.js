@@ -92,7 +92,9 @@ const sendWelcomeEmail = async (user) => {
   return sendEmail({
     to: user.email,
     subject: '🎉 Welcome to Quality Pulse!',
-    html: brandedHTML('Welcome to Quality Pulse!', `
+    html: brandedHTML(
+      'Welcome to Quality Pulse!',
+      `
       <p>Hi <strong>${user.name}</strong>,</p>
       <p>Your account has been created successfully. You are registered as a <strong>${user.role}</strong>.</p>
       <table class="info-table">
@@ -102,17 +104,27 @@ const sendWelcomeEmail = async (user) => {
       </table>
       <p>You can now log in and start managing your construction quality inspections.</p>
       <a href="${process.env.FRONTEND_URL || 'https://your-app.vercel.app'}/login" class="btn">Login to Dashboard →</a>
-    `),
+    `
+    ),
   });
 };
 
-const sendReportReviewedEmail = async ({ engineerEmail, engineerName, reportTitle, siteName, status, reviewComment }) => {
+const sendReportReviewedEmail = async ({
+  engineerEmail,
+  engineerName,
+  reportTitle,
+  siteName,
+  status,
+  reviewComment,
+}) => {
   const badgeClass = status === 'Approved' ? 'badge-approved' : 'badge-rejected';
   const emoji = status === 'Approved' ? '✅' : '⚠️';
   return sendEmail({
     to: engineerEmail,
     subject: `${emoji} Your Report "${reportTitle}" was ${status}`,
-    html: brandedHTML(`Report ${status}`, `
+    html: brandedHTML(
+      `Report ${status}`,
+      `
       <p>Hi <strong>${engineerName}</strong>,</p>
       <p>Your QA report has been reviewed by an administrator.</p>
       <span class="badge ${badgeClass}">${status}</span>
@@ -124,15 +136,24 @@ const sendReportReviewedEmail = async ({ engineerEmail, engineerName, reportTitl
       </table>
       ${status === 'Rejected' ? '<p>Please review the feedback above and resubmit your report with the necessary corrections.</p>' : '<p>Great work! Your inspection has been recorded.</p>'}
       <a href="${process.env.FRONTEND_URL || 'https://your-app.vercel.app'}/reports" class="btn">View Reports →</a>
-    `),
+    `
+    ),
   });
 };
 
-const sendSiteAssignmentEmail = async ({ engineerEmail, engineerName, siteName, siteLocation, assignedByName }) => {
+const sendSiteAssignmentEmail = async ({
+  engineerEmail,
+  engineerName,
+  siteName,
+  siteLocation,
+  assignedByName,
+}) => {
   return sendEmail({
     to: engineerEmail,
     subject: `🎯 New Site Assignment: ${siteName}`,
-    html: brandedHTML('New Site Assignment', `
+    html: brandedHTML(
+      'New Site Assignment',
+      `
       <p>Hi <strong>${engineerName}</strong>,</p>
       <p>You have been assigned to a new construction site by <strong>${assignedByName}</strong>.</p>
       <table class="info-table">
@@ -143,7 +164,8 @@ const sendSiteAssignmentEmail = async ({ engineerEmail, engineerName, siteName, 
       </table>
       <p>Please review the site details and begin your quality inspections accordingly.</p>
       <a href="${process.env.FRONTEND_URL || 'https://your-app.vercel.app'}/sites" class="btn">View Assignment →</a>
-    `),
+    `
+    ),
   });
 };
 
@@ -151,7 +173,9 @@ const sendPasswordResetEmail = async ({ email, name, resetUrl }) => {
   return sendEmail({
     to: email,
     subject: '🔑 Reset Your Quality Pulse Password',
-    html: brandedHTML('Password Reset Request', `
+    html: brandedHTML(
+      'Password Reset Request',
+      `
       <p>Hi <strong>${name}</strong>,</p>
       <p>We received a request to reset your password. Click the button below to set a new password. This link is valid for <strong>1 hour</strong>.</p>
       <p style="text-align:center; margin: 28px 0;">
@@ -159,9 +183,15 @@ const sendPasswordResetEmail = async ({ email, name, resetUrl }) => {
       </p>
       <p style="font-size:12px; color:#94a3b8;">If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
       <p style="font-size:12px; color:#94a3b8;">For security, this link will expire in 1 hour.</p>
-    `),
+    `
+    ),
   });
 };
 
-module.exports = { sendWelcomeEmail, sendReportReviewedEmail, sendSiteAssignmentEmail, sendPasswordResetEmail, sendEmail };
-
+module.exports = {
+  sendWelcomeEmail,
+  sendReportReviewedEmail,
+  sendSiteAssignmentEmail,
+  sendPasswordResetEmail,
+  sendEmail,
+};

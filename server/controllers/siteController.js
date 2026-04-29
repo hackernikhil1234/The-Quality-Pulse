@@ -9,13 +9,13 @@ const createSite = async (req, res) => {
   try {
     console.log('🔔 Creating new site with assigned engineers:', req.body.assignedEngineers);
 
-    const { 
-      name, 
-      country, 
-      city, 
-      description, 
-      exactAddress, 
-      coordinates, 
+    const {
+      name,
+      country,
+      city,
+      description,
+      exactAddress,
+      coordinates,
       assignedEngineers,
       type,
       startDate,
@@ -27,9 +27,9 @@ const createSite = async (req, res) => {
       siteManager,
       budget,
       safetyMetrics,
-      notes
+      notes,
     } = req.body;
-    
+
     console.log('Creating site for user:', req.user._id, req.user.name);
 
     if (!name) {
@@ -39,24 +39,24 @@ const createSite = async (req, res) => {
     // Prepare material specifications if provided
     let materialSpecs = [];
     if (materialSpecifications && Array.isArray(materialSpecifications)) {
-      materialSpecs = materialSpecifications.map(spec => ({
+      materialSpecs = materialSpecifications.map((spec) => ({
         material: spec.material || '',
         grade: spec.grade || '',
         quantity: spec.quantity || 0,
         unit: spec.unit || 'units',
         supplier: spec.supplier || '',
         deliveryDate: spec.deliveryDate || null,
-        notes: spec.notes || ''
+        notes: spec.notes || '',
       }));
     }
 
     // Prepare notes array if provided
     let siteNotes = [];
     if (notes && Array.isArray(notes)) {
-      siteNotes = notes.map(note => ({
+      siteNotes = notes.map((note) => ({
         content: note.content || '',
         createdBy: req.user._id,
-        createdAt: new Date()
+        createdAt: new Date(),
       }));
     }
 
@@ -87,13 +87,13 @@ const createSite = async (req, res) => {
         lastUpdated: new Date(),
         totalReports: 0,
         approvedReports: 0,
-        pendingReports: 0
+        pendingReports: 0,
       },
       notes: siteNotes,
       isActive: true,
-      isArchived: false
+      isArchived: false,
     });
-    
+
     await site.save();
 
     // Populate the site with all details
@@ -109,19 +109,19 @@ const createSite = async (req, res) => {
       action: 'site_created',
       resourceType: 'Site',
       resourceId: site._id,
-      details: { 
+      details: {
         siteName: name,
-        createdBy: req.user.name 
-      }
+        createdBy: req.user.name,
+      },
     });
 
     // Send notifications to assigned engineers
     if (req.body.assignedEngineers && req.body.assignedEngineers.length > 0) {
       const io = req.app.get('io');
       const NotificationService = require('../services/notificationService');
-      
+
       console.log(`📨 Sending notifications to ${req.body.assignedEngineers.length} engineers`);
-      
+
       for (const engineerId of req.body.assignedEngineers) {
         try {
           console.log(`   Creating notification for engineer ${engineerId}`);
@@ -131,7 +131,7 @@ const createSite = async (req, res) => {
             req.user._id,
             io
           );
-          
+
           if (notification) {
             console.log(`   ✅ Notification sent: ${notification._id}`);
           } else {
@@ -147,20 +147,17 @@ const createSite = async (req, res) => {
       success: true,
       message: 'Site created successfully',
       site: populatedSite,
-      notificationsSent: req.body.assignedEngineers?.length || 0
+      notificationsSent: req.body.assignedEngineers?.length || 0,
     });
   } catch (err) {
     console.error('Site creation error:', err.message);
-    
+
     if (err.name === 'ValidationError') {
-      const messages = Object.values(err.errors).map(val => val.message);
+      const messages = Object.values(err.errors).map((val) => val.message);
       return res.status(400).json({ message: messages.join(', ') });
     }
-    
-    res.status(500).json({ success: false,
-      message: 'Failed to create site',
-      error: error.message 
-    });
+
+    res.status(500).json({ success: false, message: 'Failed to create site', error: err.message });
   }
 };
 
@@ -183,22 +180,24 @@ const getSites = async (req, res) => {
       .sort({ createdAt: -1 });
 
     // Add createdBy info where available
-    const sitesWithCreator = await Promise.all(sites.map(async (site) => {
-      const siteObj = site.toObject();
-      
-      // Try to populate createdBy if it exists
-      if (site.createdBy) {
-        try {
-          await site.populate('createdBy', 'name email');
-          siteObj.createdBy = site.createdBy;
-        } catch (err) {
-          // If population fails, just keep the ID
-          siteObj.createdBy = { _id: site.createdBy };
+    const sitesWithCreator = await Promise.all(
+      sites.map(async (site) => {
+        const siteObj = site.toObject();
+
+        // Try to populate createdBy if it exists
+        if (site.createdBy) {
+          try {
+            await site.populate('createdBy', 'name email');
+            siteObj.createdBy = site.createdBy;
+          } catch (err) {
+            // If population fails, just keep the ID
+            siteObj.createdBy = { _id: site.createdBy };
+          }
         }
-      }
-      
-      return siteObj;
-    }));
+
+        return siteObj;
+      })
+    );
 
     res.json(sitesWithCreator);
   } catch (err) {
@@ -230,16 +229,19 @@ const getSiteById = async (req, res) => {
     // Check access permissions for engineers
     if (req.user.role === 'Engineer') {
       console.log('Checking engineer access...');
-      
+
       // Check if engineer is assigned to this site
-      const isAssigned = site.assignedEngineers && site.assignedEngineers.some(
-        engineer => engineer && engineer._id && engineer._id.toString() === req.user._id.toString()
-      );
-      
+      const isAssigned =
+        site.assignedEngineers &&
+        site.assignedEngineers.some(
+          (engineer) =>
+            engineer && engineer._id && engineer._id.toString() === req.user._id.toString()
+        );
+
       if (!isAssigned) {
         console.log('Access denied: Engineer not assigned to site');
-        return res.status(403).json({ 
-          message: 'Access denied. You are not assigned to this site.' 
+        return res.status(403).json({
+          message: 'Access denied. You are not assigned to this site.',
         });
       }
       console.log('Engineer access granted');
@@ -251,23 +253,23 @@ const getSiteById = async (req, res) => {
         .populate('inspector', 'name email')
         .populate('reviewedBy', 'name')
         .sort({ createdAt: -1 });
-      
+
       console.log('Found reports for site:', reports.length);
-      
+
       // Calculate comprehensive statistics
       if (reports.length > 0) {
-        const compliantReports = reports.filter(r => r.complianceStatus === 'Compliant').length;
+        const compliantReports = reports.filter((r) => r.complianceStatus === 'Compliant').length;
         site.complianceRate = Math.round((compliantReports / reports.length) * 100) + '%';
-        
-        const approvedReports = reports.filter(r => r.status === 'Approved').length;
-        const pendingReports = reports.filter(r => r.status === 'Pending').length;
-        const rejectedReports = reports.filter(r => r.status === 'Rejected').length;
-        
+
+        const approvedReports = reports.filter((r) => r.status === 'Approved').length;
+        const pendingReports = reports.filter((r) => r.status === 'Pending').length;
+        const rejectedReports = reports.filter((r) => r.status === 'Rejected').length;
+
         site.approvalRate = Math.round((approvedReports / reports.length) * 100) + '%';
-        
+
         // Calculate quality score from test results
         const validScores = reports
-          .map(r => {
+          .map((r) => {
             if (r.testResult && typeof r.testResult === 'object') {
               if (r.testResult.overallScore !== undefined) {
                 return parseFloat(r.testResult.overallScore);
@@ -281,17 +283,17 @@ const getSiteById = async (req, res) => {
             }
             return null;
           })
-          .filter(score => score !== null && score >= 0 && score <= 10);
-        
+          .filter((score) => score !== null && score >= 0 && score <= 10);
+
         console.log('Valid scores:', validScores);
-        
+
         if (validScores.length > 0) {
           const avgScore = validScores.reduce((a, b) => a + b, 0) / validScores.length;
           site.qualityScore = avgScore.toFixed(1) + '/10';
         } else {
           site.qualityScore = '0/10';
         }
-        
+
         // Add comprehensive report statistics
         site.reportStats = {
           total: reports.length,
@@ -299,33 +301,31 @@ const getSiteById = async (req, res) => {
           pending: pendingReports,
           rejected: rejectedReports,
           compliant: compliantReports,
-          nonCompliant: reports.filter(r => r.complianceStatus === 'Non-Compliant').length,
-          recent: reports.slice(0, 5).map(r => ({
+          nonCompliant: reports.filter((r) => r.complianceStatus === 'Non-Compliant').length,
+          recent: reports.slice(0, 5).map((r) => ({
             _id: r._id,
             title: r.title,
             status: r.status,
             complianceStatus: r.complianceStatus,
             date: r.date || r.createdAt,
-            inspector: r.inspector?.name
-          }))
+            inspector: r.inspector?.name,
+          })),
         };
-        
+
         // Calculate average response time for approved reports
-        const approvedWithDates = reports.filter(r => 
-          r.status === 'Approved' && 
-          r.createdAt && 
-          r.reviewedAt
+        const approvedWithDates = reports.filter(
+          (r) => r.status === 'Approved' && r.createdAt && r.reviewedAt
         );
-        
+
         if (approvedWithDates.length > 0) {
           const totalResponseTime = approvedWithDates.reduce((sum, report) => {
             return sum + (new Date(report.reviewedAt) - new Date(report.createdAt));
           }, 0);
-          
+
           const avgResponseHours = totalResponseTime / (approvedWithDates.length * 1000 * 60 * 60);
           site.avgResponseTime = Math.round(avgResponseHours) + 'h';
         }
-        
+
         // Update the site's quality metrics
         await Site.findByIdAndUpdate(req.params.id, {
           'qualityMetrics.complianceRate': site.complianceRate,
@@ -333,9 +333,9 @@ const getSiteById = async (req, res) => {
           'qualityMetrics.totalReports': reports.length,
           'qualityMetrics.approvedReports': approvedReports,
           'qualityMetrics.pendingReports': pendingReports,
-          'qualityMetrics.lastUpdated': new Date()
+          'qualityMetrics.lastUpdated': new Date(),
         });
-        
+
         // Store reports for the frontend
         site.reports = reports.slice(0, 10); // Limit to 10 most recent
       } else {
@@ -349,7 +349,7 @@ const getSiteById = async (req, res) => {
           rejected: 0,
           compliant: 0,
           nonCompliant: 0,
-          recent: []
+          recent: [],
         };
         site.progress = site.progress || 0;
       }
@@ -368,18 +368,21 @@ const getSiteById = async (req, res) => {
       site.displayStartDate = new Date(site.startDate).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
       });
     }
-    
+
     if (site.expectedCompletion) {
       site.formattedExpectedCompletion = new Date(site.expectedCompletion).toISOString();
-      site.displayExpectedCompletion = new Date(site.expectedCompletion).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      
+      site.displayExpectedCompletion = new Date(site.expectedCompletion).toLocaleDateString(
+        'en-US',
+        {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }
+      );
+
       // Calculate days remaining
       const today = new Date();
       const completionDate = new Date(site.expectedCompletion);
@@ -387,7 +390,7 @@ const getSiteById = async (req, res) => {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       site.daysRemaining = diffDays > 0 ? diffDays : 0;
     }
-    
+
     // Add created and updated dates
     if (site.createdAt) {
       site.formattedCreatedAt = new Date(site.createdAt).toISOString();
@@ -396,19 +399,17 @@ const getSiteById = async (req, res) => {
         month: 'long',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     }
-    
+
     if (site.updatedAt) {
       site.formattedUpdatedAt = new Date(site.updatedAt).toISOString();
     }
 
     // Add location details if not present
     if (!site.location && (site.country || site.city || site.exactAddress)) {
-      site.location = [site.exactAddress, site.city, site.country]
-        .filter(Boolean)
-        .join(', ');
+      site.location = [site.exactAddress, site.city, site.country].filter(Boolean).join(', ');
     }
 
     // Ensure quality metrics exist
@@ -419,7 +420,7 @@ const getSiteById = async (req, res) => {
         lastUpdated: new Date(),
         totalReports: site.reportStats?.total || 0,
         approvedReports: site.reportStats?.approved || 0,
-        pendingReports: site.reportStats?.pending || 0
+        pendingReports: site.reportStats?.pending || 0,
       };
     }
 
@@ -433,12 +434,12 @@ const getSiteById = async (req, res) => {
     res.json(site);
   } catch (err) {
     console.error('Error fetching site:', err);
-    
+
     // Handle specific errors
     if (err.name === 'CastError') {
       return res.status(400).json({ message: 'Invalid site ID format' });
     }
-    
+
     res.status(500).json({ message: 'Failed to fetch site details' });
   }
 };
@@ -446,14 +447,14 @@ const getSiteById = async (req, res) => {
 // Update site
 const updateSite = async (req, res) => {
   try {
-    const { 
-      name, 
-      location, 
-      status, 
-      assignedEngineers, 
-      progress, 
-      country, 
-      city, 
+    const {
+      name,
+      location,
+      status,
+      assignedEngineers,
+      progress,
+      country,
+      city,
       description,
       exactAddress,
       type,
@@ -469,34 +470,49 @@ const updateSite = async (req, res) => {
       documents,
       notes,
       isActive,
-      isArchived
+      isArchived,
     } = req.body;
-    
+
     // Get the current site before update to compare changes
     const currentSite = await Site.findById(req.params.id);
     if (!currentSite) {
       return res.status(404).json({ message: 'Site not found' });
     }
-    
+
     // Track what fields are being updated
     const updatedFields = [];
     const updateData = {};
-    
+
     // Check each field and add to updateData if provided
     const fieldsToCheck = {
-      name, location, status, assignedEngineers, progress,
-      country, city, description, exactAddress, type,
-      category, startDate, expectedCompletion, siteManager,
-      budget, safetyMetrics, lastInspection, isActive, isArchived
+      name,
+      location,
+      status,
+      assignedEngineers,
+      progress,
+      country,
+      city,
+      description,
+      exactAddress,
+      type,
+      category,
+      startDate,
+      expectedCompletion,
+      siteManager,
+      budget,
+      safetyMetrics,
+      lastInspection,
+      isActive,
+      isArchived,
     };
-    
-    Object.keys(fieldsToCheck).forEach(field => {
+
+    Object.keys(fieldsToCheck).forEach((field) => {
       if (fieldsToCheck[field] !== undefined) {
         updateData[field] = fieldsToCheck[field];
         updatedFields.push(field);
       }
     });
-    
+
     // Set endDate for consistency
     if (expectedCompletion !== undefined) {
       updateData.endDate = expectedCompletion;
@@ -504,35 +520,35 @@ const updateSite = async (req, res) => {
 
     // Handle material specifications update
     if (materialSpecifications && Array.isArray(materialSpecifications)) {
-      updateData.materialSpecifications = materialSpecifications.map(spec => ({
+      updateData.materialSpecifications = materialSpecifications.map((spec) => ({
         material: spec.material || '',
         grade: spec.grade || '',
         quantity: spec.quantity || 0,
         unit: spec.unit || 'units',
         supplier: spec.supplier || '',
         deliveryDate: spec.deliveryDate || null,
-        notes: spec.notes || ''
+        notes: spec.notes || '',
       }));
       updatedFields.push('materialSpecifications');
     }
 
     // Handle photos update
     if (photos && Array.isArray(photos)) {
-      updateData.photos = photos.map(photo => ({
+      updateData.photos = photos.map((photo) => ({
         url: photo.url || '',
         description: photo.description || '',
-        uploadedAt: photo.uploadedAt || new Date()
+        uploadedAt: photo.uploadedAt || new Date(),
       }));
       updatedFields.push('photos');
     }
 
     // Handle documents update
     if (documents && Array.isArray(documents)) {
-      updateData.documents = documents.map(doc => ({
+      updateData.documents = documents.map((doc) => ({
         name: doc.name || '',
         url: doc.url || '',
         type: doc.type || 'document',
-        uploadedAt: doc.uploadedAt || new Date()
+        uploadedAt: doc.uploadedAt || new Date(),
       }));
       updatedFields.push('documents');
     }
@@ -542,23 +558,22 @@ const updateSite = async (req, res) => {
       const newNote = {
         content: notes.trim(),
         createdBy: req.user._id,
-        createdAt: new Date()
+        createdAt: new Date(),
       };
-      
+
       const existingNotes = currentSite.notes || [];
       updateData.notes = [...existingNotes, newNote];
       updatedFields.push('notes');
     }
 
-    const site = await Site.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    )
-    .populate('assignedEngineers', 'name email phone')
-    .populate('createdBy', 'name email')
-    .populate('notes.createdBy', 'name')
-    .populate('lastInspection.inspector', 'name');
+    const site = await Site.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    })
+      .populate('assignedEngineers', 'name email phone')
+      .populate('createdBy', 'name email')
+      .populate('notes.createdBy', 'name')
+      .populate('lastInspection.inspector', 'name');
 
     if (!site) {
       return res.status(404).json({ message: 'Site not found' });
@@ -570,17 +585,17 @@ const updateSite = async (req, res) => {
       action: 'site_updated',
       resourceType: 'Site',
       resourceId: req.params.id,
-      details: { 
+      details: {
         updatedFields: updatedFields,
-        updatedBy: req.user.name 
-      }
+        updatedBy: req.user.name,
+      },
     });
 
     // Send notifications to assigned engineers about site updates
     if (site.assignedEngineers && site.assignedEngineers.length > 0 && updatedFields.length > 0) {
       const io = req.app.get('io');
       console.log(`📨 Sending update notifications to ${site.assignedEngineers.length} engineers`);
-      
+
       // Create a user-friendly summary of changes
       const changeSummary = [];
       if (updatedFields.includes('name')) {
@@ -601,12 +616,12 @@ const updateSite = async (req, res) => {
       if (updatedFields.includes('notes')) {
         changeSummary.push('New note added');
       }
-      
+
       // Use the same notification service pattern as createSite
       for (const engineer of site.assignedEngineers) {
         try {
           console.log(`   Creating update notification for engineer ${engineer._id}`);
-          
+
           // Create a notification for site update
           const notification = new Notification({
             userId: engineer._id,
@@ -618,15 +633,15 @@ const updateSite = async (req, res) => {
               siteName: site.name,
               updatedBy: req.user.name,
               updatedFields: updatedFields,
-              changeSummary: changeSummary
+              changeSummary: changeSummary,
             },
             priority: 'medium',
             isRead: false,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Expire in 7 days
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Expire in 7 days
           });
-          
+
           await notification.save();
-          
+
           // Emit real-time notification via Socket.io if available
           if (io) {
             io.to(`user_${engineer._id}`).emit('notification', {
@@ -635,10 +650,10 @@ const updateSite = async (req, res) => {
               title: notification.title,
               message: notification.message,
               createdAt: notification.createdAt,
-              isRead: notification.isRead
+              isRead: notification.isRead,
             });
           }
-          
+
           console.log(`   ✅ Update notification sent: ${notification._id}`);
         } catch (notifyError) {
           console.error(`   ❌ Error notifying engineer ${engineer._id}:`, notifyError.message);
@@ -651,19 +666,19 @@ const updateSite = async (req, res) => {
       await Site.findByIdAndUpdate(req.params.id, {
         progress: 100,
         status: 'Completed',
-        endDate: new Date()
+        endDate: new Date(),
       });
     }
 
     res.json(site);
   } catch (err) {
     console.error('Error updating site:', err);
-    
+
     if (err.name === 'ValidationError') {
-      const messages = Object.values(err.errors).map(val => val.message);
+      const messages = Object.values(err.errors).map((val) => val.message);
       return res.status(400).json({ message: messages.join(', ') });
     }
-    
+
     res.status(500).json({ message: 'Failed to update site' });
   }
 };
@@ -672,7 +687,7 @@ const updateSite = async (req, res) => {
 const archiveSite = async (req, res) => {
   try {
     const site = await Site.findById(req.params.id);
-    
+
     if (!site) {
       return res.status(404).json({ message: 'Site not found' });
     }
@@ -693,7 +708,7 @@ const archiveSite = async (req, res) => {
       action: 'site_archived',
       resourceType: 'Site',
       resourceId: req.params.id,
-      details: { siteName: site.name }
+      details: { siteName: site.name },
     });
 
     res.json({ message: 'Site archived successfully', site });
@@ -707,7 +722,7 @@ const archiveSite = async (req, res) => {
 const restoreSite = async (req, res) => {
   try {
     const site = await Site.findById(req.params.id);
-    
+
     if (!site) {
       return res.status(404).json({ message: 'Site not found' });
     }
@@ -728,7 +743,7 @@ const restoreSite = async (req, res) => {
       action: 'site_restored',
       resourceType: 'Site',
       resourceId: req.params.id,
-      details: { siteName: site.name }
+      details: { siteName: site.name },
     });
 
     res.json({ message: 'Site restored successfully', site });
@@ -742,7 +757,7 @@ const restoreSite = async (req, res) => {
 const deleteSite = async (req, res) => {
   try {
     const site = await Site.findById(req.params.id);
-    
+
     if (!site) {
       return res.status(404).json({ message: 'Site not found' });
     }
@@ -755,8 +770,8 @@ const deleteSite = async (req, res) => {
     // Check if site has reports (prevent deletion if reports exist)
     const reportCount = await Report.countDocuments({ site: req.params.id });
     if (reportCount > 0) {
-      return res.status(400).json({ 
-        message: 'Cannot delete site with existing reports. Archive it instead.' 
+      return res.status(400).json({
+        message: 'Cannot delete site with existing reports. Archive it instead.',
       });
     }
 
@@ -768,7 +783,7 @@ const deleteSite = async (req, res) => {
       action: 'site_deleted',
       resourceType: 'Site',
       resourceId: req.params.id,
-      details: { siteName: site.name }
+      details: { siteName: site.name },
     });
 
     res.json({ message: 'Site deleted successfully' });
@@ -783,40 +798,41 @@ const getSiteStats = async (req, res) => {
   try {
     const userId = req.user._id;
     const role = req.user.role;
-    
+
     let query = { isArchived: false };
-    
+
     if (role === 'Engineer') {
       query.assignedEngineers = userId;
       query.isActive = true;
     }
-    
+
     const totalSites = await Site.countDocuments(query);
     const activeSites = await Site.countDocuments({ ...query, status: 'Active' });
     const completedSites = await Site.countDocuments({ ...query, status: 'Completed' });
     const inProgressSites = await Site.countDocuments({ ...query, status: 'In Progress' });
-    
+
     // Get sites by type
     const sitesByType = await Site.aggregate([
       { $match: query },
       { $group: { _id: '$type', count: { $sum: 1 } } },
-      { $sort: { count: -1 } }
+      { $sort: { count: -1 } },
     ]);
-    
+
     // Get recent sites
     const recentSites = await Site.find(query)
       .sort({ createdAt: -1 })
       .limit(5)
       .select('name status progress createdAt');
-    
+
     // Calculate average progress
     const avgProgressResult = await Site.aggregate([
       { $match: query },
-      { $group: { _id: null, avgProgress: { $avg: '$progress' } } }
+      { $group: { _id: null, avgProgress: { $avg: '$progress' } } },
     ]);
-    
-    const avgProgress = avgProgressResult.length > 0 ? Math.round(avgProgressResult[0].avgProgress) : 0;
-    
+
+    const avgProgress =
+      avgProgressResult.length > 0 ? Math.round(avgProgressResult[0].avgProgress) : 0;
+
     res.json({
       totalSites,
       activeSites,
@@ -825,7 +841,7 @@ const getSiteStats = async (req, res) => {
       sitesByType,
       recentSites,
       avgProgress: `${avgProgress}%`,
-      statsLastUpdated: new Date()
+      statsLastUpdated: new Date(),
     });
   } catch (err) {
     console.error('Error fetching site statistics:', err);
@@ -833,13 +849,13 @@ const getSiteStats = async (req, res) => {
   }
 };
 
-module.exports = { 
-  createSite, 
-  getSites, 
-  getSiteById, 
-  updateSite, 
+module.exports = {
+  createSite,
+  getSites,
+  getSiteById,
+  updateSite,
   archiveSite,
   restoreSite,
   deleteSite,
-  getSiteStats 
+  getSiteStats,
 };

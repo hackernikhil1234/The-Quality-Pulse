@@ -9,25 +9,25 @@ router.get('/test-notification', protect, async (req, res) => {
   try {
     const io = req.app.get('io');
     const notification = await NotificationService.sendTestNotification(req.user._id, io);
-    
+
     if (notification) {
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Test notification sent successfully',
-        notification 
+        notification,
       });
     } else {
-      res.status(500).json({ 
-        success: false, 
-        message: 'Failed to send test notification' 
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send test notification',
       });
     }
   } catch (error) {
     console.error('Test notification error:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Error sending test notification',
-      error: error.message 
+      error: error.message,
     });
   }
 });
@@ -37,32 +37,32 @@ router.post('/test-assignment/:engineerId', protect, authorize('Admin'), async (
   try {
     const { siteId } = req.body;
     const io = req.app.get('io');
-    
+
     const notification = await NotificationService.notifyEngineerAssignedToSite(
       req.params.engineerId,
       siteId,
       req.user._id,
       io
     );
-    
+
     if (notification) {
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Assignment test notification sent successfully',
-        notification 
+        notification,
       });
     } else {
-      res.status(500).json({ 
-        success: false, 
-        message: 'Failed to send assignment test notification' 
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send assignment test notification',
       });
     }
   } catch (error) {
     console.error('Test assignment error:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Error sending test assignment',
-      error: error.message 
+      error: error.message,
     });
   }
 });

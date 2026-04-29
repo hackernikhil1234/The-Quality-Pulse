@@ -36,11 +36,13 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Toaster position="top-right" />
-        <Suspense fallback={
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600"></div>
-          </div>
-        }>
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center min-h-screen">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600"></div>
+            </div>
+          }
+        >
           <Routes>
             {/* Public routes - accessible to everyone */}
             <Route path="/" element={<Landing />} />
@@ -52,25 +54,25 @@ function App() {
             {/* Protected routes - All authenticated users */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              
+
               {/* Sites */}
               <Route path="/sites" element={<SiteList />} />
               <Route path="/engineer/sites" element={<SiteList engineerView={true} />} />
               <Route path="/sites/create" element={<CreateSite />} />
               <Route path="/sites/edit/:id" element={<EditSite />} />
               <Route path="/sites/:id" element={<SiteDetails />} />
-              
+
               {/* Reports */}
               <Route path="/reports" element={<ReportList />} />
               <Route path="/engineer/reports" element={<ReportList engineerView={true} />} />
               <Route path="/reports/create" element={<CreateReport />} />
               <Route path="/reports/:id" element={<ReportDetails />} />
               <Route path="/reports/:id/edit" element={<CreateReport />} />
-              
+
               {/* Other */}
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/resources" element={<Resources />} /> 
+              <Route path="/resources" element={<Resources />} />
               <Route path="/notifications" element={<Notifications />} />
             </Route>
 

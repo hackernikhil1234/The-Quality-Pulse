@@ -116,7 +116,8 @@
     @apply max-w-full h-auto;
   }
 
-  img:not([src]), img[src=""] {
+  img:not([src]),
+  img[src=''] {
     @apply hidden;
   }
 
@@ -172,8 +173,13 @@
 
 /* Floating Animation */
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
 }
 .float {
   animation: float 6s ease-in-out infinite;
@@ -197,7 +203,8 @@
 
 /* Pulse animation for unread indicator */
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

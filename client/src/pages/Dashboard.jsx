@@ -51,7 +51,7 @@ import {
   FaList,
   FaEyeSlash,
   FaCrown,
-  FaCalendarCheck
+  FaCalendarCheck,
 } from 'react-icons/fa';
 
 export default function Dashboard() {
@@ -66,7 +66,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!user) return;
-      
+
       setDashboardLoading(true);
       try {
         // Fetch dashboard statistics
@@ -81,14 +81,14 @@ export default function Dashboard() {
         if (user.role === 'Engineer') {
           const reportsResponse = await api.get('/dashboard/recent-reports');
           setRecentReports(reportsResponse.data);
-          
+
           const sitesResponse = await api.get('/dashboard/assigned-sites');
           setAssignedSites(sitesResponse.data);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         toast.error('Failed to load dashboard data');
-        
+
         // Set empty state
         setStats({
           totalSites: 0,
@@ -96,7 +96,7 @@ export default function Dashboard() {
           pendingReports: 0,
           activeEngineers: 0,
           complianceRate: '0%',
-          approvalRate: '0%'
+          approvalRate: '0%',
         });
       } finally {
         setDashboardLoading(false);
@@ -116,32 +116,46 @@ export default function Dashboard() {
   };
 
   const getIconForActivity = (icon) => {
-    const iconProps = { className: "text-xl" };
-    switch(icon) {
-      case 'check': return <FaCheckCircle {...iconProps} className="text-green-500" />;
-      case 'times': return <FaExclamationTriangle {...iconProps} className="text-red-500" />;
-      case 'clock': return <FaClock {...iconProps} className="text-yellow-500" />;
-      case 'building': return <FaBuilding {...iconProps} className="text-blue-500" />;
-      case 'user-plus': return <FaUserPlus {...iconProps} className="text-purple-500" />;
-      case 'user-check': return <FaUserCheck {...iconProps} className="text-green-500" />;
-      case 'user-times': return <FaUserTimes {...iconProps} className="text-red-500" />;
-      case 'user-edit': return <FaUserEdit {...iconProps} className="text-blue-500" />;
-      case 'file-alt': return <FaFileAlt {...iconProps} className="text-indigo-500" />;
-      default: return <FaClipboardCheck {...iconProps} className="text-slate-500" />;
+    const iconProps = { className: 'text-xl' };
+    switch (icon) {
+      case 'check':
+        return <FaCheckCircle {...iconProps} className="text-green-500" />;
+      case 'times':
+        return <FaExclamationTriangle {...iconProps} className="text-red-500" />;
+      case 'clock':
+        return <FaClock {...iconProps} className="text-yellow-500" />;
+      case 'building':
+        return <FaBuilding {...iconProps} className="text-blue-500" />;
+      case 'user-plus':
+        return <FaUserPlus {...iconProps} className="text-purple-500" />;
+      case 'user-check':
+        return <FaUserCheck {...iconProps} className="text-green-500" />;
+      case 'user-times':
+        return <FaUserTimes {...iconProps} className="text-red-500" />;
+      case 'user-edit':
+        return <FaUserEdit {...iconProps} className="text-blue-500" />;
+      case 'file-alt':
+        return <FaFileAlt {...iconProps} className="text-indigo-500" />;
+      default:
+        return <FaClipboardCheck {...iconProps} className="text-slate-500" />;
     }
   };
 
   const getTypeColor = (type) => {
-    switch(type) {
-      case 'success': return 'border-l-4 border-green-500 bg-green-50 dark:bg-green-900/10';
-      case 'error': return 'border-l-4 border-red-500 bg-red-50 dark:bg-red-900/10';
-      case 'warning': return 'border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10';
-      default: return 'border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/10';
+    switch (type) {
+      case 'success':
+        return 'border-l-4 border-green-500 bg-green-50 dark:bg-green-900/10';
+      case 'error':
+        return 'border-l-4 border-red-500 bg-red-50 dark:bg-red-900/10';
+      case 'warning':
+        return 'border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10';
+      default:
+        return 'border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/10';
     }
   };
 
   const getStatusColor = (status) => {
-    switch(status) {
+    switch (status) {
       case 'Active':
       case 'Approved':
       case 'Compliant':
@@ -170,7 +184,7 @@ export default function Dashboard() {
         <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
           {/* Enhanced gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-          
+
           <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-15 transition-opacity duration-300">
             <FaBuilding className="text-6xl text-slate-400 dark:text-slate-600" />
           </div>
@@ -180,8 +194,12 @@ export default function Dashboard() {
                 <FaBuilding className="text-2xl text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Total Sites</p>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white">{stats?.totalSites || 0}</h3>
+                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Total Sites
+                </p>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                  {stats?.totalSites || 0}
+                </h3>
               </div>
             </div>
             <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
@@ -195,7 +213,7 @@ export default function Dashboard() {
         <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-green-500/20 hover:shadow-2xl hover:shadow-green-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
           {/* Enhanced gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-green-600 to-emerald-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-          
+
           <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-15 transition-opacity duration-300">
             <FaFileAlt className="text-6xl text-slate-400 dark:text-slate-600" />
           </div>
@@ -205,8 +223,12 @@ export default function Dashboard() {
                 <FaFileAlt className="text-2xl text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Total Reports</p>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white">{stats?.totalReports || 0}</h3>
+                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Total Reports
+                </p>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                  {stats?.totalReports || 0}
+                </h3>
               </div>
             </div>
             <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
@@ -220,7 +242,7 @@ export default function Dashboard() {
         <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-amber-500/20 hover:shadow-2xl hover:shadow-amber-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
           {/* Enhanced gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-amber-600 to-orange-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-          
+
           <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-15 transition-opacity duration-300">
             <FaExclamationTriangle className="text-6xl text-slate-400 dark:text-slate-600" />
           </div>
@@ -230,8 +252,12 @@ export default function Dashboard() {
                 <FaExclamationTriangle className="text-2xl text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Pending Reviews</p>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white">{stats?.pendingReports || 0}</h3>
+                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Pending Reviews
+                </p>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                  {stats?.pendingReports || 0}
+                </h3>
               </div>
             </div>
             <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
@@ -245,7 +271,7 @@ export default function Dashboard() {
         <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-purple-500/20 hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
           {/* Enhanced gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-          
+
           <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-15 transition-opacity duration-300">
             <FaUserTie className="text-6xl text-slate-400 dark:text-slate-600" />
           </div>
@@ -255,8 +281,12 @@ export default function Dashboard() {
                 <FaUserTie className="text-2xl text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Active Engineers</p>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white">{stats?.activeEngineers || 0}</h3>
+                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Active Engineers
+                </p>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                  {stats?.activeEngineers || 0}
+                </h3>
               </div>
             </div>
             <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
@@ -278,7 +308,9 @@ export default function Dashboard() {
                 <FaCheckDouble className="text-2xl text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Compliance Rate</h3>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                  Compliance Rate
+                </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Quality standards met</p>
               </div>
             </div>
@@ -289,11 +321,12 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-1000" 
-              style={{ 
-                width: stats?.complianceRate ? 
-                  `min(${parseFloat(stats.complianceRate)}%, 100%)` : '0%' 
+            <div
+              className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-1000"
+              style={{
+                width: stats?.complianceRate
+                  ? `min(${parseFloat(stats.complianceRate)}%, 100%)`
+                  : '0%',
               }}
             ></div>
           </div>
@@ -319,11 +352,10 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-1000" 
-              style={{ 
-                width: stats?.approvalRate ? 
-                  `min(${parseFloat(stats.approvalRate)}%, 100%)` : '0%' 
+            <div
+              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-1000"
+              style={{
+                width: stats?.approvalRate ? `min(${parseFloat(stats.approvalRate)}%, 100%)` : '0%',
               }}
             ></div>
           </div>
@@ -334,37 +366,37 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {[
           {
-            title: "Manage Engineers",
-            description: "View and manage all engineers",
+            title: 'Manage Engineers',
+            description: 'View and manage all engineers',
             icon: FaUsers,
-            gradient: "from-blue-500 to-blue-600",
-            shadow: "shadow-blue-500/20",
-            path: "/admin"
+            gradient: 'from-blue-500 to-blue-600',
+            shadow: 'shadow-blue-500/20',
+            path: '/admin',
           },
           {
-            title: "All Sites",
-            description: "Monitor construction sites",
+            title: 'All Sites',
+            description: 'Monitor construction sites',
             icon: FaBuilding,
-            gradient: "from-green-500 to-green-600",
-            shadow: "shadow-green-500/20",
-            path: "/sites"
+            gradient: 'from-green-500 to-green-600',
+            shadow: 'shadow-green-500/20',
+            path: '/sites',
           },
           {
-            title: "Review Reports",
-            description: "Approve or reject reports",
+            title: 'Review Reports',
+            description: 'Approve or reject reports',
             icon: FaClipboardCheck,
-            gradient: "from-purple-500 to-purple-600",
-            shadow: "shadow-purple-500/20",
-            path: "/reports"
+            gradient: 'from-purple-500 to-purple-600',
+            shadow: 'shadow-purple-500/20',
+            path: '/reports',
           },
           {
-            title: "Analytics",
-            description: "Platform insights & trends",
+            title: 'Analytics',
+            description: 'Platform insights & trends',
             icon: FaChartBar,
-            gradient: "from-amber-500 to-amber-600",
-            shadow: "shadow-amber-500/20",
-            path: "/analytics"
-          }
+            gradient: 'from-amber-500 to-amber-600',
+            shadow: 'shadow-amber-500/20',
+            path: '/analytics',
+          },
         ].map((action, index) => (
           <button
             key={index}
@@ -376,12 +408,18 @@ export default function Dashboard() {
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-4">
-                <div className={`p-3 bg-gradient-to-br ${action.gradient} rounded-lg shadow-lg group-hover:scale-110 transition-transform duration-300 ${action.shadow}`}>
+                <div
+                  className={`p-3 bg-gradient-to-br ${action.gradient} rounded-lg shadow-lg group-hover:scale-110 transition-transform duration-300 ${action.shadow}`}
+                >
                   <action.icon className="text-2xl text-white" />
                 </div>
                 <div className="flex-1 text-left">
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors duration-300">{action.title}</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{action.description}</p>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors duration-300">
+                    {action.title}
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {action.description}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors duration-300">
@@ -404,16 +442,20 @@ export default function Dashboard() {
                   <FaHistory className="text-xl text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Recent Activities</h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Latest platform activities</p>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    Recent Activities
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Latest platform activities
+                  </p>
                 </div>
               </div>
             </div>
             <div className="space-y-3">
               {activities.length > 0 ? (
                 activities.slice(0, 5).map((activity, index) => (
-                  <div 
-                    key={activity.id || index} 
+                  <div
+                    key={activity.id || index}
                     className={`p-4 rounded-xl ${getTypeColor(activity.type)} hover:shadow-md transition-all duration-300`}
                   >
                     <div className="flex items-start gap-3">
@@ -436,13 +478,15 @@ export default function Dashboard() {
                               month: 'short',
                               day: 'numeric',
                               hour: '2-digit',
-                              minute: '2-digit'
+                              minute: '2-digit',
                             })}
                           </span>
                         </div>
                       </div>
                       {activity.details?.status && (
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(activity.details.status)} shadow-sm`}>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(activity.details.status)} shadow-sm`}
+                        >
                           {activity.details.status}
                         </span>
                       )}
@@ -484,7 +528,9 @@ export default function Dashboard() {
                     <FaCheckCircle className="text-green-600 dark:text-green-400 text-xl" />
                     <div>
                       <p className="font-medium text-slate-900 dark:text-white">Platform Status</p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">All systems operational</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        All systems operational
+                      </p>
                     </div>
                   </div>
                   <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-sm font-medium rounded-full shadow-sm shadow-green-200/50">
@@ -499,7 +545,9 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3">
                     <FaCalendarWeek className="text-blue-600 dark:text-blue-400 text-xl" />
                     <div>
-                      <p className="font-medium text-slate-900 dark:text-white">Reports This Week</p>
+                      <p className="font-medium text-slate-900 dark:text-white">
+                        Reports This Week
+                      </p>
                       <p className="text-sm text-slate-600 dark:text-slate-400">Last 7 days</p>
                     </div>
                   </div>
@@ -515,7 +563,9 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3">
                     <FaUserClock className="text-purple-600 dark:text-purple-400 text-xl" />
                     <div>
-                      <p className="font-medium text-slate-900 dark:text-white">Avg. Response Time</p>
+                      <p className="font-medium text-slate-900 dark:text-white">
+                        Avg. Response Time
+                      </p>
                       <p className="text-sm text-slate-600 dark:text-slate-400">Report review</p>
                     </div>
                   </div>
@@ -555,7 +605,7 @@ export default function Dashboard() {
         <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
           {/* Enhanced gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-          
+
           <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-15 transition-opacity duration-300">
             <FaHardHat className="text-6xl text-slate-400 dark:text-slate-600" />
           </div>
@@ -565,8 +615,12 @@ export default function Dashboard() {
                 <FaHardHat className="text-2xl text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Assigned Sites</p>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white">{stats?.assignedSites || 0}</h3>
+                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Assigned Sites
+                </p>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                  {stats?.assignedSites || 0}
+                </h3>
               </div>
             </div>
             <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
@@ -580,7 +634,7 @@ export default function Dashboard() {
         <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-green-500/20 hover:shadow-2xl hover:shadow-green-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
           {/* Enhanced gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-green-600 to-emerald-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-          
+
           <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-15 transition-opacity duration-300">
             <FaCalendarAlt className="text-6xl text-slate-400 dark:text-slate-600" />
           </div>
@@ -590,11 +644,13 @@ export default function Dashboard() {
                 <FaCalendarAlt className="text-2xl text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">This Month</p>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white">{stats?.thisMonthReports || 0}</h3>
-                <p className="text-xs opacity-75 mt-1">
-                  Today: {stats?.todaysReports || 0}
+                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  This Month
                 </p>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                  {stats?.thisMonthReports || 0}
+                </h3>
+                <p className="text-xs opacity-75 mt-1">Today: {stats?.todaysReports || 0}</p>
               </div>
             </div>
             <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
@@ -608,7 +664,7 @@ export default function Dashboard() {
         <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-purple-500/20 hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
           {/* Enhanced gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-          
+
           <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-15 transition-opacity duration-300">
             <FaPercentage className="text-6xl text-slate-400 dark:text-slate-600" />
           </div>
@@ -618,8 +674,12 @@ export default function Dashboard() {
                 <FaPercentage className="text-2xl text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Approval Rate</p>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white">{stats?.approvalRate || '0%'}</h3>
+                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Approval Rate
+                </p>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                  {stats?.approvalRate || '0%'}
+                </h3>
                 <p className="text-xs opacity-75 mt-1">
                   {stats?.approvedReports || 0} approved | {stats?.rejectedReports || 0} rejected
                 </p>
@@ -636,7 +696,7 @@ export default function Dashboard() {
         <div className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg shadow-amber-500/20 hover:shadow-2xl hover:shadow-amber-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:border-yellow-500/30">
           {/* Enhanced gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-amber-600 to-orange-700 opacity-5 group-hover:opacity-10 transition-opacity duration-300"></div>
-          
+
           <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-15 transition-opacity duration-300">
             <FaSync className="text-6xl text-slate-400 dark:text-slate-600" />
           </div>
@@ -646,8 +706,12 @@ export default function Dashboard() {
                 <FaSync className="text-2xl text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Pending</p>
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white">{stats?.pendingReports || 0}</h3>
+                <p className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Pending
+                </p>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                  {stats?.pendingReports || 0}
+                </h3>
               </div>
             </div>
             <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
@@ -669,7 +733,9 @@ export default function Dashboard() {
                 <FaCheckDouble className="text-2xl text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Compliance Rate</h3>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                  Compliance Rate
+                </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Quality standards met</p>
               </div>
             </div>
@@ -683,11 +749,12 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-1000" 
-              style={{ 
-                width: stats?.complianceRate ? 
-                  `min(${parseFloat(stats.complianceRate)}%, 100%)` : '0%' 
+            <div
+              className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-1000"
+              style={{
+                width: stats?.complianceRate
+                  ? `min(${parseFloat(stats.complianceRate)}%, 100%)`
+                  : '0%',
               }}
             ></div>
           </div>
@@ -703,7 +770,9 @@ export default function Dashboard() {
               </div>
               <div>
                 <h3 className="font-bold text-lg text-slate-900 dark:text-white">Quality Score</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Based on compliance & approval</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Based on compliance & approval
+                </p>
               </div>
             </div>
             <div className="text-right">
@@ -716,11 +785,12 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-1000" 
-              style={{ 
-                width: stats?.qualityScore ? 
-                  `min(${(parseFloat(stats.qualityScore) / 10) * 100}%, 100%)` : '0%' 
+            <div
+              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-1000"
+              style={{
+                width: stats?.qualityScore
+                  ? `min(${(parseFloat(stats.qualityScore) / 10) * 100}%, 100%)`
+                  : '0%',
               }}
             ></div>
           </div>
@@ -731,37 +801,37 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {[
           {
-            title: "Submit Report",
-            description: "Create new quality report",
+            title: 'Submit Report',
+            description: 'Create new quality report',
             icon: FaFileAlt,
-            gradient: "from-green-500 to-green-600",
-            shadow: "shadow-green-500/20",
-            path: "/reports/create"
+            gradient: 'from-green-500 to-green-600',
+            shadow: 'shadow-green-500/20',
+            path: '/reports/create',
           },
           {
-            title: "My Sites",
-            description: "View assigned sites",
+            title: 'My Sites',
+            description: 'View assigned sites',
             icon: FaBuilding,
-            gradient: "from-blue-500 to-blue-600",
-            shadow: "shadow-blue-500/20",
-            path: "/sites"
+            gradient: 'from-blue-500 to-blue-600',
+            shadow: 'shadow-blue-500/20',
+            path: '/sites',
           },
           {
-            title: "My Reports",
-            description: "View submitted reports",
+            title: 'My Reports',
+            description: 'View submitted reports',
             icon: FaClipboardList,
-            gradient: "from-purple-500 to-purple-600",
-            shadow: "shadow-purple-500/20",
-            path: "/reports"
+            gradient: 'from-purple-500 to-purple-600',
+            shadow: 'shadow-purple-500/20',
+            path: '/reports',
           },
           {
-            title: "Profile",
-            description: "Update your information",
+            title: 'Profile',
+            description: 'Update your information',
             icon: FaIdCard,
-            gradient: "from-amber-500 to-amber-600",
-            shadow: "shadow-amber-500/20",
-            path: "/profile"
-          }
+            gradient: 'from-amber-500 to-amber-600',
+            shadow: 'shadow-amber-500/20',
+            path: '/profile',
+          },
         ].map((action, index) => (
           <button
             key={index}
@@ -773,12 +843,18 @@ export default function Dashboard() {
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-4">
-                <div className={`p-3 bg-gradient-to-br ${action.gradient} rounded-lg shadow-lg group-hover:scale-110 transition-transform duration-300 ${action.shadow}`}>
+                <div
+                  className={`p-3 bg-gradient-to-br ${action.gradient} rounded-lg shadow-lg group-hover:scale-110 transition-transform duration-300 ${action.shadow}`}
+                >
                   <action.icon className="text-2xl text-white" />
                 </div>
                 <div className="flex-1 text-left">
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors duration-300">{action.title}</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{action.description}</p>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors duration-300">
+                    {action.title}
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {action.description}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors duration-300">
@@ -801,16 +877,20 @@ export default function Dashboard() {
                   <FaHistory className="text-xl text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">My Recent Activity</h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Reports submitted & site assignments</p>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    My Recent Activity
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Reports submitted & site assignments
+                  </p>
                 </div>
               </div>
             </div>
             <div className="space-y-3">
               {activities.length > 0 ? (
                 activities.slice(0, 5).map((activity, index) => (
-                  <div 
-                    key={activity.id || index} 
+                  <div
+                    key={activity.id || index}
                     className={`p-4 rounded-xl ${getTypeColor(activity.type)} hover:shadow-md hover:shadow-blue-200/30 dark:hover:shadow-blue-800/20 transition-all duration-300`}
                   >
                     <div className="flex items-start gap-3">
@@ -828,13 +908,15 @@ export default function Dashboard() {
                               month: 'short',
                               day: 'numeric',
                               hour: '2-digit',
-                              minute: '2-digit'
+                              minute: '2-digit',
                             })}
                           </span>
                         </div>
                       </div>
                       {activity.details?.status && (
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(activity.details.status)} shadow-sm`}>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(activity.details.status)} shadow-sm`}
+                        >
                           {activity.details.status}
                         </span>
                       )}
@@ -866,19 +948,28 @@ export default function Dashboard() {
                   <FaMapMarkerAlt className="text-2xl text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Assigned Sites</h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Sites under your supervision</p>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    Assigned Sites
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Sites under your supervision
+                  </p>
                 </div>
               </div>
               <div className="space-y-4">
                 {assignedSites.length > 0 ? (
                   assignedSites.slice(0, 4).map((site, index) => (
-                    <div key={site._id || index} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-yellow-500/50 transition-colors duration-300 shadow-sm hover:shadow-md hover:shadow-yellow-200/30">
+                    <div
+                      key={site._id || index}
+                      className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-yellow-500/50 transition-colors duration-300 shadow-sm hover:shadow-md hover:shadow-yellow-200/30"
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-medium text-slate-900 dark:text-white truncate">
                           {site.name}
                         </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(site.status)} shadow-sm`}>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(site.status)} shadow-sm`}
+                        >
                           {site.status}
                         </span>
                       </div>
@@ -950,7 +1041,7 @@ export default function Dashboard() {
       <Sidebar />
       <div className="flex-1 overflow-hidden">
         <Navbar />
-        
+
         <div className="p-6">
           {/* Header with Greeting */}
           <div className="mb-8">
@@ -960,17 +1051,22 @@ export default function Dashboard() {
                   <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg shadow-blue-500/30">
                     <FaTachometerAlt className="text-2xl text-white" />
                   </div>
-                  <p className="text-sm uppercase tracking-wider font-medium text-slate-500 dark:text-slate-400">{getGreeting()}</p>
+                  <p className="text-sm uppercase tracking-wider font-medium text-slate-500 dark:text-slate-400">
+                    {getGreeting()}
+                  </p>
                 </div>
                 <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">
-                  Welcome back, <span className="text-blue-600 dark:text-blue-400">{user.name}</span>!
+                  Welcome back,{' '}
+                  <span className="text-blue-600 dark:text-blue-400">{user.name}</span>!
                 </h1>
                 <div className="flex items-center gap-3 mt-6">
-                  <span className={`px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wider shadow-lg ${
-                    user.role === 'Admin' 
-                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-red-500/30' 
-                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-blue-500/30'
-                  }`}>
+                  <span
+                    className={`px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wider shadow-lg ${
+                      user.role === 'Admin'
+                        ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-red-500/30'
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-blue-500/30'
+                    }`}
+                  >
                     <span className="flex items-center gap-2">
                       {user.role === 'Admin' ? <FaUsers /> : <FaUserTie />}
                       {user.role}
@@ -978,11 +1074,11 @@ export default function Dashboard() {
                   </span>
                   <span className="text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm shadow-slate-300/30 dark:shadow-slate-700/30">
                     <FaCalendarAlt className="inline mr-2" />
-                    {new Date().toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    {new Date().toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
                     })}
                   </span>
                 </div>
@@ -1000,31 +1096,35 @@ export default function Dashboard() {
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-4">
                   <FaShieldAlt className="text-2xl text-green-600 dark:text-green-400" />
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Safety Compliance</h3>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                    Safety Compliance
+                  </h3>
                 </div>
                 <p className="text-slate-600 dark:text-slate-400">
-                  {user.role === 'Admin' 
-                    ? 'Maintaining 100% safety standards across all sites' 
+                  {user.role === 'Admin'
+                    ? 'Maintaining 100% safety standards across all sites'
                     : 'All safety protocols are being followed on your sites'}
                 </p>
               </div>
             </div>
-            
+
             <div className="group relative overflow-hidden rounded-xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:border-blue-500/50 hover:shadow-blue-500/10">
               <div className="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-blue-600 rounded-r-xl"></div>
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-4">
                   <FaQrcode className="text-2xl text-blue-600 dark:text-blue-400" />
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Quality Assurance</h3>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                    Quality Assurance
+                  </h3>
                 </div>
                 <p className="text-slate-600 dark:text-slate-400">
-                  {user.role === 'Admin' 
-                    ? 'Monitoring material quality across all projects' 
+                  {user.role === 'Admin'
+                    ? 'Monitoring material quality across all projects'
                     : 'Ensure material testing meets quality standards'}
                 </p>
               </div>
             </div>
-            
+
             <div className="group relative overflow-hidden rounded-xl border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:border-amber-500/50 hover:shadow-amber-500/10">
               <div className="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-500 to-amber-600 rounded-r-xl"></div>
               <div className="relative z-10">

@@ -6,13 +6,13 @@ import Sidebar from '../components/Sidebar';
 import TwoFactorSettings from '../components/TwoFactorSettings';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FaUser, 
-  FaEnvelope, 
-  FaPhone, 
-  FaCamera, 
-  FaSave, 
-  FaTimes, 
+import {
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+  FaCamera,
+  FaSave,
+  FaTimes,
   FaKey,
   FaLock,
   FaEye,
@@ -22,7 +22,7 @@ import {
   FaGlobe,
   FaEdit,
   FaTrash,
-  FaArrowLeft
+  FaArrowLeft,
 } from 'react-icons/fa';
 
 export default function Profile() {
@@ -37,19 +37,19 @@ export default function Profile() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localAvatar, setLocalAvatar] = useState(null);
   const fileInputRef = useRef(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     countryCode: '+1',
-    avatar: ''
+    avatar: '',
   });
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
 
   // Try to get user from localStorage if auth is loading
@@ -72,9 +72,9 @@ export default function Profile() {
         email: displayUser.email || '',
         phone: displayUser.phone || '',
         countryCode: displayUser.countryCode || '+1',
-        avatar: displayUser.avatar || ''
+        avatar: displayUser.avatar || '',
       });
-      
+
       // Load avatar from localStorage if exists
       const storedAvatar = localStorage.getItem(`avatar_${displayUser._id}`);
       if (storedAvatar) {
@@ -113,8 +113,10 @@ export default function Profile() {
           <div className="p-8">
             <div className="flex items-center justify-center h-96">
               <div className="text-center">
-                <div className="text-red-600 dark:text-red-400 mb-4">Please log in to view your profile</div>
-                <button 
+                <div className="text-red-600 dark:text-red-400 mb-4">
+                  Please log in to view your profile
+                </div>
+                <button
                   onClick={() => navigate('/login')}
                   className="px-6 py-3 rounded-lg font-medium transition-all duration-200
                     bg-gradient-to-r from-yellow-500 to-yellow-600 
@@ -144,32 +146,36 @@ export default function Profile() {
     if (localAvatar) {
       return localAvatar;
     }
-    
+
     // Check if displayUser has avatar
-    if (displayUser?.avatar && displayUser.avatar !== '' && displayUser.avatar !== getDefaultAvatarUrl()) {
+    if (
+      displayUser?.avatar &&
+      displayUser.avatar !== '' &&
+      displayUser.avatar !== getDefaultAvatarUrl()
+    ) {
       // If it's a data URL (SVG or base64), return as is
       if (displayUser.avatar.startsWith('data:image/')) {
         return displayUser.avatar;
       }
-      
+
       // If it's a relative path, construct URL
       if (displayUser.avatar.startsWith('/uploads/')) {
         return `${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://the-quality-pulse.onrender.com' : 'http://localhost:5000')}${displayUser.avatar}`;
       }
-      
+
       // If it's a full URL, return as is
       if (displayUser.avatar.startsWith('http')) {
         return displayUser.avatar;
       }
-      
+
       return displayUser.avatar;
     }
-    
+
     // Check formData avatar as fallback (but not if it's the default)
     if (formData.avatar && formData.avatar !== '' && formData.avatar !== getDefaultAvatarUrl()) {
       return formData.avatar;
     }
-    
+
     // Return default avatar
     return getDefaultAvatarUrl();
   };
@@ -184,34 +190,35 @@ export default function Profile() {
     { code: '+81', country: '🇯🇵 Japan' },
     { code: '+86', country: '🇨🇳 China' },
     { code: '+971', country: '🇦🇪 UAE' },
-    { code: '+966', country: '🇸🇦 Saudi Arabia' }
+    { code: '+966', country: '🇸🇦 Saudi Arabia' },
   ];
 
   const handleEdit = async (e) => {
     e.preventDefault();
-    
+
     setLoading(true);
-    
+
     try {
       // If avatar is the default one, send empty string
-      const avatarToSave = (localAvatar || formData.avatar) === getDefaultAvatarUrl() 
-        ? '' 
-        : (localAvatar || formData.avatar);
-      
+      const avatarToSave =
+        (localAvatar || formData.avatar) === getDefaultAvatarUrl()
+          ? ''
+          : localAvatar || formData.avatar;
+
       const response = await api.put('/auth/profile', {
         name: formData.name,
         phone: formData.phone,
         countryCode: formData.countryCode,
-        avatar: avatarToSave
+        avatar: avatarToSave,
       });
-      
+
       // Update both the context and localStorage
       const updatedUser = { ...displayUser, ...response.data.user };
       if (updateUser && typeof updateUser === 'function') {
         updateUser(updatedUser);
       }
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       toast.success('Profile updated successfully!');
       setEditMode(false);
     } catch (error) {
@@ -224,31 +231,31 @@ export default function Profile() {
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error('New passwords do not match');
       return;
     }
-    
+
     if (passwordData.newPassword.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       await api.put('/auth/change-password', {
         currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
+        newPassword: passwordData.newPassword,
       });
-      
+
       toast.success('Password changed successfully!');
       setPasswordMode(false);
       setPasswordData({
         currentPassword: '',
         newPassword: '',
-        confirmPassword: ''
+        confirmPassword: '',
       });
     } catch (error) {
       console.error('Password change error:', error);
@@ -261,57 +268,58 @@ export default function Profile() {
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     // Validate file
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file');
       return;
     }
-    
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+
+    if (file.size > 5 * 1024 * 1024) {
+      // 5MB limit
       toast.error('Image size should be less than 5MB');
       return;
     }
-    
+
     setUploading(true);
-    
+
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64Image = event.target.result;
       setLocalAvatar(base64Image);
-      setFormData(prev => ({ ...prev, avatar: base64Image }));
-      
+      setFormData((prev) => ({ ...prev, avatar: base64Image }));
+
       // Save to localStorage for offline use
       if (displayUser?._id) {
         localStorage.setItem(`avatar_${displayUser._id}`, base64Image);
       }
-      
+
       try {
         const formData = new FormData();
         formData.append('images', file);
-        
+
         const response = await api.post('/upload', formData, {
           headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+            'Content-Type': 'multipart/form-data',
+          },
         });
-        
+
         if (response.data.success && response.data.files.length > 0) {
           const newAvatar = response.data.files[0];
-          
+
           // Update user profile with the new avatar
           await api.put('/auth/profile', {
-            avatar: newAvatar
+            avatar: newAvatar,
           });
-          
+
           // Update user in auth context and localStorage
           const updatedUser = { ...displayUser, avatar: newAvatar };
           if (updateUser && typeof updateUser === 'function') {
             updateUser(updatedUser);
           }
           localStorage.setItem('user', JSON.stringify(updatedUser));
-          
-          setFormData(prev => ({ ...prev, avatar: newAvatar }));
+
+          setFormData((prev) => ({ ...prev, avatar: newAvatar }));
           toast.success('Profile picture updated successfully!');
         }
       } catch (error) {
@@ -319,13 +327,13 @@ export default function Profile() {
         // Still show success for local upload
         toast.success('Profile picture saved locally');
       }
-      
+
       setUploading(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     };
-    
+
     reader.readAsDataURL(file);
   };
 
@@ -333,25 +341,25 @@ export default function Profile() {
     try {
       // Clear local avatar
       setLocalAvatar(null);
-      setFormData(prev => ({ ...prev, avatar: '' }));
-      
+      setFormData((prev) => ({ ...prev, avatar: '' }));
+
       // Remove from localStorage
       if (displayUser?._id) {
         localStorage.removeItem(`avatar_${displayUser._id}`);
       }
-      
+
       // Update user profile to remove avatar
       await api.put('/auth/profile', {
-        avatar: ''
+        avatar: '',
       });
-      
+
       // Update user in auth context and localStorage
       const updatedUser = { ...displayUser, avatar: '' };
       if (updateUser && typeof updateUser === 'function') {
         updateUser(updatedUser);
       }
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       toast.success('Profile picture removed successfully!');
     } catch (error) {
       console.error('Delete avatar error:', error);
@@ -374,13 +382,13 @@ export default function Profile() {
         email: displayUser.email || '',
         phone: displayUser.phone || '',
         countryCode: displayUser.countryCode || '+1',
-        avatar: displayUser.avatar || ''
+        avatar: displayUser.avatar || '',
       });
     }
     setPasswordData({
       currentPassword: '',
       newPassword: '',
-      confirmPassword: ''
+      confirmPassword: '',
     });
   };
 
@@ -391,7 +399,7 @@ export default function Profile() {
   };
 
   const getRoleBadgeColor = (role) => {
-    switch(role?.toLowerCase()) {
+    switch (role?.toLowerCase()) {
       case 'admin':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       case 'engineer':
@@ -404,12 +412,11 @@ export default function Profile() {
   // Get current phone for display (use formData when in edit mode, otherwise displayUser data)
   const displayPhone = editMode ? formData.phone : displayUser.phone;
   const displayCountryCode = editMode ? formData.countryCode : displayUser.countryCode;
-  
+
   // Check if current avatar is the default one
   const hasCustomAvatar = () => {
     const avatarUrl = getAvatarUrl();
-    return avatarUrl !== getDefaultAvatarUrl() && 
-           !avatarUrl.includes('Profile-PNG-File.png');
+    return avatarUrl !== getDefaultAvatarUrl() && !avatarUrl.includes('Profile-PNG-File.png');
   };
 
   return (
@@ -417,7 +424,7 @@ export default function Profile() {
       <Sidebar />
       <div className="flex-1 overflow-hidden">
         <Navbar />
-        
+
         <div className="p-6">
           {/* Header with Back Button */}
           <div className="flex items-start gap-4 mb-8">
@@ -453,18 +460,20 @@ export default function Profile() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Profile Card */}
             <div className="lg:col-span-2">
-              <div className="p-6 transition-all duration-300
+              <div
+                className="p-6 transition-all duration-300
                 bg-white dark:bg-slate-800 
                 border border-slate-200 dark:border-slate-700 
-                rounded-lg shadow-lg">
+                rounded-lg shadow-lg"
+              >
                 <div className="flex flex-col md:flex-row gap-8">
                   {/* Avatar Section */}
                   <div className="flex-shrink-0">
                     <div className="relative">
                       <div className="w-48 h-48 rounded-2xl overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg bg-white">
-                        <img 
-                          src={getAvatarUrl()} 
-                          alt="Profile" 
+                        <img
+                          src={getAvatarUrl()}
+                          alt="Profile"
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             e.target.onerror = null;
@@ -472,7 +481,7 @@ export default function Profile() {
                           }}
                         />
                       </div>
-                      
+
                       {editMode && (
                         <div className="absolute -bottom-3 -right-3 flex gap-2">
                           <button
@@ -487,7 +496,7 @@ export default function Profile() {
                               <FaCamera className="text-lg" />
                             )}
                           </button>
-                          
+
                           {hasCustomAvatar() && (
                             <button
                               onClick={handleDeleteAvatar}
@@ -499,7 +508,7 @@ export default function Profile() {
                           )}
                         </div>
                       )}
-                      
+
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -508,13 +517,15 @@ export default function Profile() {
                         className="hidden"
                       />
                     </div>
-                    
+
                     <div className="mt-6 text-center">
                       <div className="text-xl font-bold text-slate-900 dark:text-white break-words">
                         {displayUser.name}
                       </div>
                       <div className="flex items-center justify-center gap-2 mt-2">
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getRoleBadgeColor(displayUser.role)}`}>
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-semibold ${getRoleBadgeColor(displayUser.role)}`}
+                        >
                           {displayUser.role}
                         </span>
                       </div>
@@ -532,40 +543,53 @@ export default function Profile() {
                                 <FaUser className="text-blue-600 dark:text-blue-400" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-slate-600 dark:text-slate-400">Full Name</p>
-                                <p className="text-lg font-semibold text-slate-900 dark:text-white truncate">{displayUser.name}</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                  Full Name
+                                </p>
+                                <p className="text-lg font-semibold text-slate-900 dark:text-white truncate">
+                                  {displayUser.name}
+                                </p>
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/10 rounded-xl border border-green-200 dark:border-green-800/30">
                             <div className="flex items-center gap-3 mb-2">
                               <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                                 <FaEnvelope className="text-green-600 dark:text-green-400" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-slate-600 dark:text-slate-400">Email Address</p>
-                                <p className="text-lg font-semibold text-slate-900 dark:text-white truncate" title={displayUser.email}>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                  Email Address
+                                </p>
+                                <p
+                                  className="text-lg font-semibold text-slate-900 dark:text-white truncate"
+                                  title={displayUser.email}
+                                >
                                   {displayUser.email}
                                 </p>
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/10 rounded-xl border border-purple-200 dark:border-purple-800/30">
                             <div className="flex items-center gap-3 mb-2">
                               <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                                 <FaPhone className="text-purple-600 dark:text-purple-400" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-slate-600 dark:text-slate-400">Phone Number</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                  Phone Number
+                                </p>
                                 <p className="text-lg font-semibold text-slate-900 dark:text-white truncate">
-                                  {displayUser.phone ? formatPhoneNumber(displayUser.phone) : 'Not set'}
+                                  {displayUser.phone
+                                    ? formatPhoneNumber(displayUser.phone)
+                                    : 'Not set'}
                                 </p>
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/10 rounded-xl border border-amber-200 dark:border-amber-800/30">
                             <div className="flex items-center gap-3 mb-2">
                               <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
@@ -573,7 +597,9 @@ export default function Profile() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm text-slate-600 dark:text-slate-400">Role</p>
-                                <p className="text-lg font-semibold text-slate-900 dark:text-white truncate">{displayUser.role}</p>
+                                <p className="text-lg font-semibold text-slate-900 dark:text-white truncate">
+                                  {displayUser.role}
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -585,13 +611,18 @@ export default function Profile() {
                               <FaCalendarAlt className="text-slate-600 dark:text-slate-400" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm text-slate-600 dark:text-slate-400">Account Created</p>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                Account Created
+                              </p>
                               <p className="text-lg font-semibold text-slate-900 dark:text-white truncate">
-                                {new Date(displayUser.createdAt || Date.now()).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}
+                                {new Date(displayUser.createdAt || Date.now()).toLocaleDateString(
+                                  'en-US',
+                                  {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                  }
+                                )}
                               </p>
                             </div>
                           </div>
@@ -611,7 +642,7 @@ export default function Profile() {
                             <FaEdit />
                             Edit Profile
                           </button>
-                          
+
                           <button
                             onClick={() => setPasswordMode(true)}
                             className="px-6 py-3 rounded-lg font-medium transition-all duration-200
@@ -634,7 +665,7 @@ export default function Profile() {
                           <FaLock className="text-amber-500" />
                           Change Password
                         </h3>
-                        
+
                         <div className="space-y-4">
                           <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -642,9 +673,14 @@ export default function Profile() {
                             </label>
                             <div className="relative">
                               <input
-                                type={showPassword ? "text" : "password"}
+                                type={showPassword ? 'text' : 'password'}
                                 value={passwordData.currentPassword}
-                                onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                                onChange={(e) =>
+                                  setPasswordData({
+                                    ...passwordData,
+                                    currentPassword: e.target.value,
+                                  })
+                                }
                                 className="w-full p-3 rounded-lg transition-all duration-200
                                   bg-white dark:bg-slate-800 
                                   border border-slate-300 dark:border-slate-600 
@@ -665,16 +701,18 @@ export default function Profile() {
                               </button>
                             </div>
                           </div>
-                          
+
                           <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                               New Password
                             </label>
                             <div className="relative">
                               <input
-                                type={showNewPassword ? "text" : "password"}
+                                type={showNewPassword ? 'text' : 'password'}
                                 value={passwordData.newPassword}
-                                onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                                onChange={(e) =>
+                                  setPasswordData({ ...passwordData, newPassword: e.target.value })
+                                }
                                 className="w-full p-3 rounded-lg transition-all duration-200
                                   bg-white dark:bg-slate-800 
                                   border border-slate-300 dark:border-slate-600 
@@ -698,16 +736,21 @@ export default function Profile() {
                               Password must be at least 6 characters
                             </p>
                           </div>
-                          
+
                           <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                               Confirm New Password
                             </label>
                             <div className="relative">
                               <input
-                                type={showConfirmPassword ? "text" : "password"}
+                                type={showConfirmPassword ? 'text' : 'password'}
                                 value={passwordData.confirmPassword}
-                                onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                                onChange={(e) =>
+                                  setPasswordData({
+                                    ...passwordData,
+                                    confirmPassword: e.target.value,
+                                  })
+                                }
                                 className="w-full p-3 rounded-lg transition-all duration-200
                                   bg-white dark:bg-slate-800 
                                   border border-slate-300 dark:border-slate-600 
@@ -729,7 +772,7 @@ export default function Profile() {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex gap-3 pt-4">
                           <button
                             type="submit"
@@ -754,7 +797,7 @@ export default function Profile() {
                               </>
                             )}
                           </button>
-                          
+
                           <button
                             type="button"
                             onClick={handleCancel}
@@ -778,7 +821,7 @@ export default function Profile() {
                           <FaUser className="text-blue-500" />
                           Edit Profile Information
                         </h3>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -802,7 +845,7 @@ export default function Profile() {
                               <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                             </div>
                           </div>
-                          
+
                           <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                               Email Address
@@ -826,7 +869,7 @@ export default function Profile() {
                               Email cannot be changed (used for login)
                             </p>
                           </div>
-                          
+
                           <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                               Phone Number
@@ -835,7 +878,9 @@ export default function Profile() {
                               <div className="relative flex-1">
                                 <select
                                   value={formData.countryCode}
-                                  onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}
+                                  onChange={(e) =>
+                                    setFormData({ ...formData, countryCode: e.target.value })
+                                  }
                                   className="w-full p-3 rounded-lg transition-all duration-200
                                     bg-white dark:bg-slate-800 
                                     border border-slate-300 dark:border-slate-600 
@@ -855,7 +900,12 @@ export default function Profile() {
                                 <input
                                   type="tel"
                                   value={formData.phone}
-                                  onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      phone: e.target.value.replace(/\D/g, ''),
+                                    })
+                                  }
                                   className="w-full p-3 rounded-lg transition-all duration-200
                                     bg-white dark:bg-slate-800 
                                     border border-slate-300 dark:border-slate-600 
@@ -870,7 +920,7 @@ export default function Profile() {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex gap-3 pt-4">
                           <button
                             type="submit"
@@ -895,7 +945,7 @@ export default function Profile() {
                               </>
                             )}
                           </button>
-                          
+
                           <button
                             type="button"
                             onClick={handleCancel}
@@ -922,12 +972,16 @@ export default function Profile() {
             {/* Right Column - Account Status */}
             <div className="space-y-6">
               {/* Account Status */}
-              <div className="p-6 transition-all duration-300
+              <div
+                className="p-6 transition-all duration-300
                 bg-white dark:bg-slate-800 
                 border border-slate-200 dark:border-slate-700 
-                rounded-lg shadow-lg">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Account Status</h3>
-                
+                rounded-lg shadow-lg"
+              >
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+                  Account Status
+                </h3>
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/30">
                     <span className="text-slate-700 dark:text-slate-300">Account Status</span>
@@ -935,17 +989,19 @@ export default function Profile() {
                       Active
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800/30">
                     <span className="text-slate-700 dark:text-slate-300">Email</span>
                     <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full text-sm font-medium">
                       Verified
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800/30">
                     <span className="text-slate-700 dark:text-slate-300">Phone</span>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${displayPhone ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400'}`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${displayPhone ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400'}`}
+                    >
                       {displayPhone ? 'Set' : 'Not Set'}
                     </span>
                   </div>
@@ -956,12 +1012,16 @@ export default function Profile() {
               <TwoFactorSettings user={displayUser} />
 
               {/* Account Info */}
-              <div className="p-6 transition-all duration-300
+              <div
+                className="p-6 transition-all duration-300
                 bg-white dark:bg-slate-800 
                 border border-slate-200 dark:border-slate-700 
-                rounded-lg shadow-lg">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Account Information</h3>
-                
+                rounded-lg shadow-lg"
+              >
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+                  Account Information
+                </h3>
+
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">User ID:</span>
@@ -969,14 +1029,14 @@ export default function Profile() {
                       {displayUser._id ? displayUser._id.substring(0, 8) + '...' : 'N/A'}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">Member Since:</span>
                     <span className="text-slate-800 dark:text-slate-300">
                       {new Date(displayUser.createdAt || Date.now()).toLocaleDateString()}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">Last Updated:</span>
                     <span className="text-slate-800 dark:text-slate-300">

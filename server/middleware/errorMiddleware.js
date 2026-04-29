@@ -12,7 +12,9 @@ const errorHandler = (err, req, res, next) => {
 
   // Handle Mongoose validation error
   if (err.name === 'ValidationError') {
-    message = Object.values(err.errors).map((val) => val.message).join(', ');
+    message = Object.values(err.errors)
+      .map((val) => val.message)
+      .join(', ');
     statusCode = 400;
   }
 
@@ -22,9 +24,9 @@ const errorHandler = (err, req, res, next) => {
     statusCode = 400;
   }
 
-  logger.error(`[${req.method}] ${req.originalUrl} - ${message}`, { 
-      error: err.stack, 
-      ip: req.ip
+  logger.error(`[${req.method}] ${req.originalUrl} - ${message}`, {
+    error: err.stack,
+    ip: req.ip,
   });
 
   res.status(statusCode).json({

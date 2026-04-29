@@ -10,10 +10,10 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    
+
     // Disable strictPopulate to prevent errors when populating fields that might not exist
     mongoose.set('strictPopulate', false);
-    
+
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error('MongoDB Connection Error:', error.message);

@@ -10,16 +10,16 @@ export const fetchAnalyticsData = async (timeRange) => {
     // Try to fetch real data from the server
     const res = await api.get(`/analytics?timeRange=${timeRange}`);
     const realData = res.data;
-    
+
     // Define what "enough data" means
     const hasEnoughData = realData.totalReports >= 5; // At least 5 reports
-    
+
     if (hasEnoughData) {
       return {
         ...realData,
         source: 'real',
         isDemo: false,
-        message: 'Showing real data from your database'
+        message: 'Showing real data from your database',
       };
     } else {
       // Not enough real data, use demo data
@@ -29,9 +29,10 @@ export const fetchAnalyticsData = async (timeRange) => {
         ...generateContextualDemoData(timeRange, realData), // Fill gaps with demo data
         source: 'hybrid',
         isDemo: true,
-        message: realData.totalReports > 0 
-          ? `Based on ${realData.totalReports} real reports (demo data augmented)`
-          : 'Showing demo data. Create reports to see your real analytics!'
+        message:
+          realData.totalReports > 0
+            ? `Based on ${realData.totalReports} real reports (demo data augmented)`
+            : 'Showing demo data. Create reports to see your real analytics!',
       };
     }
   } catch (error) {
@@ -40,7 +41,7 @@ export const fetchAnalyticsData = async (timeRange) => {
       ...generateContextualDemoData(timeRange, {}),
       source: 'demo',
       isDemo: true,
-      message: 'Demo data (API unavailable)'
+      message: 'Demo data (API unavailable)',
     };
   }
 };
@@ -51,8 +52,21 @@ export const fetchAnalyticsData = async (timeRange) => {
 const generateContextualDemoData = (timeRange, existingData = {}) => {
   const now = new Date();
   const currentMonth = now.getMonth();
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  
+  const monthNames = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
   // Base data - fill gaps with realistic values
   const baseData = {
     complianceRate: existingData.complianceRate || 78,
@@ -63,30 +77,30 @@ const generateContextualDemoData = (timeRange, existingData = {}) => {
     approvedReports: existingData.approvedReports || 8,
     rejectedReports: existingData.rejectedReports || 2,
     passRate: existingData.passRate || 85,
-    failRate: existingData.failRate || (100 - (existingData.passRate || 85)),
+    failRate: existingData.failRate || 100 - (existingData.passRate || 85),
     avgResolutionTime: existingData.avgResolutionTime || 1.5,
     sitePerformance: existingData.sitePerformance || [
       { site: 'Main Site', compliance: 92, reports: 6 },
       { site: 'West Wing', compliance: 85, reports: 4 },
-      { site: 'East Block', compliance: 78, reports: 2 }
+      { site: 'East Block', compliance: 78, reports: 2 },
     ],
     engineerPerformance: existingData.engineerPerformance || [
       { engineer: 'Site Engineer', reports: 8, compliance: 88 },
-      { engineer: 'QA Inspector', reports: 4, compliance: 82 }
+      { engineer: 'QA Inspector', reports: 4, compliance: 82 },
     ],
     materialCompliance: existingData.materialCompliance || [
       { material: 'Concrete', totalTests: 8, passRate: 87 },
       { material: 'Steel Bars', totalTests: 6, passRate: 92 },
       { material: 'Cement', totalTests: 4, passRate: 84 },
       { material: 'Bricks', totalTests: 3, passRate: 79 },
-      { material: 'Aggregates', totalTests: 2, passRate: 81 }
-    ]
+      { material: 'Aggregates', totalTests: 2, passRate: 81 },
+    ],
   };
 
   // Generate trend data based on time range
   let trends = { daily: [], monthly: [] };
-  
-  switch(timeRange) {
+
+  switch (timeRange) {
     case 'day':
       // Last 24 hours in 3-hour intervals
       trends.daily = Array.from({ length: 8 }, (_, i) => {
@@ -94,30 +108,31 @@ const generateContextualDemoData = (timeRange, existingData = {}) => {
         return {
           date: `${hour.toString().padStart(2, '0')}:00`,
           reports: Math.floor(Math.random() * 3) + 1,
-          compliance: Math.floor(Math.random() * 15) + 80
+          compliance: Math.floor(Math.random() * 15) + 80,
         };
       });
       break;
-      
-    case 'week':
+
+    case 'week': {
       // Last 7 days
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      trends.monthly = days.map(day => ({
+      trends.monthly = days.map((day) => ({
         month: day,
         reports: Math.floor(Math.random() * 4) + 1,
-        compliance: Math.floor(Math.random() * 15) + 80
+        compliance: Math.floor(Math.random() * 15) + 80,
       }));
       break;
-      
+    }
+
     case 'month':
       // Last 30 days in weekly segments
       trends.monthly = Array.from({ length: 4 }, (_, i) => ({
         month: `Week ${i + 1}`,
         reports: Math.floor(Math.random() * 6) + 2,
-        compliance: Math.floor(Math.random() * 20) + 75
+        compliance: Math.floor(Math.random() * 20) + 75,
       }));
       break;
-      
+
     case 'year':
       // Last 12 months (contextual to current month)
       trends.monthly = Array.from({ length: 12 }, (_, i) => {
@@ -126,7 +141,7 @@ const generateContextualDemoData = (timeRange, existingData = {}) => {
         return {
           month: monthName,
           reports: Math.floor(Math.random() * 6) + 2,
-          compliance: Math.floor(Math.random() * 20) + 75
+          compliance: Math.floor(Math.random() * 20) + 75,
         };
       });
       break;
@@ -134,7 +149,7 @@ const generateContextualDemoData = (timeRange, existingData = {}) => {
 
   return {
     ...baseData,
-    trends
+    trends,
   };
 };
 
@@ -146,14 +161,14 @@ export const getDataQualityInfo = (analyticsData) => {
     return {
       level: analyticsData.source === 'hybrid' ? 'partial' : 'demo',
       realReports: analyticsData.totalReports || 0,
-      message: analyticsData.message
+      message: analyticsData.message,
     };
   }
-  
+
   return {
     level: 'real',
     realReports: analyticsData.totalReports,
-    message: analyticsData.message
+    message: analyticsData.message,
   };
 };
 

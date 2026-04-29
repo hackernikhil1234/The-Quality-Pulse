@@ -30,10 +30,15 @@ export default function ForgotPassword() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden font-sans text-slate-900 dark:text-white transition-colors duration-300">
-
       {/* Background Video */}
       <div className="absolute inset-0 z-0">
-        <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
           <source src={loginVideo} type="video/mp4" />
         </video>
       </div>
@@ -43,7 +48,6 @@ export default function ForgotPassword() {
 
       {/* Card */}
       <div className="relative z-10 w-full max-w-md p-10 space-y-8 bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl rounded-sm shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] border border-slate-200 dark:border-slate-700 transition-all duration-300">
-        
         {/* Yellow accent stripe */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-600" />
 
@@ -51,11 +55,16 @@ export default function ForgotPassword() {
           <>
             <div className="text-center">
               <div className="inline-block mb-4 px-3 py-1 border border-yellow-500/30 rounded-full bg-yellow-500/10">
-                <span className="text-yellow-600 dark:text-yellow-400 text-xs font-mono tracking-widest uppercase">● Account Recovery</span>
+                <span className="text-yellow-600 dark:text-yellow-400 text-xs font-mono tracking-widest uppercase">
+                  ● Account Recovery
+                </span>
               </div>
-              <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">Forgot Password</h2>
+              <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">
+                Forgot Password
+              </h2>
               <p className="mt-3 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                Enter your registered email address. We'll send you a secure link to reset your password.
+                Enter your registered email address. We'll send you a secure link to reset your
+                password.
               </p>
             </div>
 
@@ -89,7 +98,8 @@ export default function ForgotPassword() {
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    SEND RESET LINK <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    SEND RESET LINK{' '}
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
                   </span>
                 )}
               </button>
@@ -103,9 +113,12 @@ export default function ForgotPassword() {
               </div>
             </div>
             <div>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Check Your Email</h2>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
+                Check Your Email
+              </h2>
               <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
-                If an account is registered with <strong>{email}</strong>, you'll receive a password reset link shortly.
+                If an account is registered with <strong>{email}</strong>, you'll receive a password
+                reset link shortly.
               </p>
               <p className="mt-2 text-xs text-slate-500 dark:text-slate-500">
                 The link expires in 1 hour. Check your spam folder if you don't see it.

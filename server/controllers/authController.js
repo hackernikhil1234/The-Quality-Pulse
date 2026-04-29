@@ -39,7 +39,7 @@ const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: role || 'Engineer'
+      role: role || 'Engineer',
     });
 
     // Generate tokens
@@ -47,16 +47,23 @@ const registerUser = async (req, res) => {
     const refreshToken = generateRefreshToken(user._id);
 
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true, secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     // Send welcome email (non-blocking)
-    emailService.sendWelcomeEmail({ name: user.name, email: user.email, role: user.role })
-      .catch(e => console.error('Welcome email failed (non-critical):', e.message));
+    emailService
+      .sendWelcomeEmail({ name: user.name, email: user.email, role: user.role })
+      .catch((e) => console.error('Welcome email failed (non-critical):', e.message));
 
     res.status(201).json({
-      _id: user._id, name: user.name, email: user.email, role: user.role, token
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token,
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -74,10 +81,7 @@ const loginUser = async (req, res) => {
     }
 
     const user = await User.findOne({
-      $or: [
-        { email: identifier },
-        { phone: identifier }
-      ]
+      $or: [{ email: identifier }, { phone: identifier }],
     });
 
     if (user && (await bcrypt.compare(password, user.password))) {
@@ -87,16 +91,22 @@ const loginUser = async (req, res) => {
 
       const token = generateToken(user._id);
       const refreshToken = generateRefreshToken(user._id);
-      
+
       res.cookie('refreshToken', refreshToken, {
-        httpOnly: true, secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
       });
-      
+
       res.json({
-        _id: user._id, name: user.name, email: user.email,
-        phone: user.phone, countryCode: user.countryCode,
-        role: user.role, token
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        countryCode: user.countryCode,
+        role: user.role,
+        token,
       });
     } else {
       res.status(401).json({ message: 'Invalid credentials' });
@@ -121,7 +131,7 @@ const getMe = async (req, res) => {
       role: user.role || 'Engineer',
       isActive: user.isActive !== undefined ? user.isActive : true,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      updatedAt: user.updatedAt,
     });
   } catch (error) {
     console.error('GetMe error:', error);

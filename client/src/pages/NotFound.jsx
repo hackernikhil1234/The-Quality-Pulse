@@ -16,7 +16,7 @@ export default function NotFound() {
 
       {/* Caution tape top */}
       <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-yellow-500 via-black/20 to-yellow-500 bg-[repeating-linear-gradient(45deg,#eab308,#eab308_20px,#000_20px,#000_40px)]" />
-      
+
       <div className="relative z-10 text-center max-w-lg space-y-6">
         {/* Giant 404 */}
         <div className="relative">
@@ -42,7 +42,8 @@ export default function NotFound() {
             Page Not Found
           </h1>
           <p className="mt-3 text-slate-400 text-base leading-relaxed">
-            The page you're looking for doesn't exist or has been moved. Please check the URL or navigate back to safety.
+            The page you're looking for doesn't exist or has been moved. Please check the URL or
+            navigate back to safety.
           </p>
         </div>
 

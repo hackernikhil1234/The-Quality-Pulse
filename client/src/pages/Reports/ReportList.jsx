@@ -13,21 +13,21 @@ export default function ReportList() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   const siteId = searchParams.get('site');
   const siteName = searchParams.get('siteName');
-  
+
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
   const [allSites, setAllSites] = useState([]); // Store all sites for name mapping
-  
+
   // Pagination State
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalReports, setTotalReports] = useState(0);
-  
+
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -51,52 +51,33 @@ export default function ReportList() {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (authLoading) return;
-    
-    if (!user) {
-      return;
-    }
-    
-    fetchReports();
-  }, [user, authLoading, siteId, statusFilter, page, limit, searchTerm]);
-
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchTerm(searchInput);
-      setPage(1); // Reset to first page on search
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
   const fetchReports = async () => {
     try {
       setLoading(true);
-      
+
       const params = {
         page,
         limit,
-        search: searchTerm
+        search: searchTerm,
       };
-      
+
       if (siteId) {
         params.site = siteId;
       }
-      
+
       if (statusFilter !== 'All') {
         params.status = statusFilter;
       }
-      
+
       // For engineers, only fetch their own reports
       if (user?.role === 'Engineer') {
         params.engineer = user._id || user.id;
       }
-      
+
       console.log('Fetching reports with params:', params);
       const res = await api.get('/reports', { params });
       console.log('Reports data received:', res.data);
-      
+
       let reportsData = [];
       if (Array.isArray(res.data)) {
         reportsData = res.data;
@@ -107,7 +88,7 @@ export default function ReportList() {
         setTotalReports(res.data.pagination?.total || reportsData.length);
         setTotalPages(res.data.pagination?.pages || 1);
       }
-      
+
       // Log first report for debugging
       if (reportsData.length > 0) {
         console.log('First report structure:', reportsData[0]);
@@ -115,7 +96,7 @@ export default function ReportList() {
         console.log('Inspector in report:', reportsData[0].inspector);
         console.log('All sites available:', allSites);
       }
-      
+
       setReports(reportsData);
     } catch (err) {
       console.error('Error fetching reports:', err);
@@ -126,73 +107,101 @@ export default function ReportList() {
     }
   };
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setPage(1); // Reset to first page on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      return;
+    }
+
+    fetchReports();
+  }, [user, authLoading, siteId, statusFilter, page, limit, searchTerm]);
+
   // Get site name - SIMPLIFIED VERSION
   const getSiteName = (report) => {
     if (!report) return 'Unknown Site';
-    
+
     console.log('Getting site name for report:', report._id, report.site);
-    
+
     // If site is populated as an object with name
     if (report.site && typeof report.site === 'object') {
       if (report.site.name) return report.site.name;
       if (report.site.siteName) return report.site.siteName;
       if (report.site.title) return report.site.title;
-      
+
       // If site object has _id but no name, try to find in allSites
       if (report.site._id && allSites.length > 0) {
-        const foundSite = allSites.find(s => s._id === report.site._id);
+        const foundSite = allSites.find((s) => s._id === report.site._id);
         if (foundSite) return foundSite.name || `Site ${report.site._id.substring(0, 8)}...`;
       }
     }
-    
+
     // If site is just an ID string
     if (report.site && typeof report.site === 'string' && allSites.length > 0) {
-      const foundSite = allSites.find(s => s._id === report.site);
+      const foundSite = allSites.find((s) => s._id === report.site);
       if (foundSite) return foundSite.name || `Site ${report.site.substring(0, 8)}...`;
     }
-    
+
     // Try other possible field names
     if (report.siteName) return report.siteName;
     if (report.projectSite?.name) return report.projectSite.name;
     if (report.location) return report.location;
-    
+
     return 'Unknown Site';
   };
 
   // Get engineer name - SIMPLIFIED VERSION
   const getEngineerName = (report) => {
     if (!report) return 'Unknown Engineer';
-    
-    console.log('Getting engineer name for report:', report._id, report.inspector, report.createdBy);
-    
+
+    console.log(
+      'Getting engineer name for report:',
+      report._id,
+      report.inspector,
+      report.createdBy
+    );
+
     // From your console log, it looks like engineer info is in 'inspector' field
     if (report.inspector && typeof report.inspector === 'object') {
       if (report.inspector.name) return report.inspector.name;
       if (report.inspector.email) return report.inspector.email;
     }
-    
+
     // Try createdBy field
     if (report.createdBy && typeof report.createdBy === 'object') {
       if (report.createdBy.name) return report.createdBy.name;
       if (report.createdBy.email) return report.createdBy.email;
     }
-    
+
     // Try engineer field
     if (report.engineer && typeof report.engineer === 'object') {
       if (report.engineer.name) return report.engineer.name;
       if (report.engineer.email) return report.engineer.email;
     }
-    
+
     // If it's a string ID and it's the current user
-    if (report.inspector && typeof report.inspector === 'string' && user?._id === report.inspector) {
+    if (
+      report.inspector &&
+      typeof report.inspector === 'string' &&
+      user?._id === report.inspector
+    ) {
       return user.name || user.email || 'You';
     }
-    
+
     // If it's a string ID
     if (report.inspector && typeof report.inspector === 'string') {
       return `Engineer ${report.inspector.substring(0, 8)}...`;
     }
-    
+
     return 'Unknown Engineer';
   };
 
@@ -200,7 +209,7 @@ export default function ReportList() {
     if (!window.confirm('Are you sure you want to delete this report?')) {
       return;
     }
-    
+
     try {
       await api.delete(`/reports/${reportId}`);
       toast.success('Report deleted successfully');
@@ -217,9 +226,11 @@ export default function ReportList() {
       toast.error('Only rejected reports can be re-created');
       return;
     }
-    
+
     // Navigate to create report page with report data for pre-filling
-    navigate(`/reports/create?edit=${report._id}&site=${report.site?._id || report.site}&siteName=${encodeURIComponent(getSiteName(report))}`);
+    navigate(
+      `/reports/create?edit=${report._id}&site=${report.site?._id || report.site}&siteName=${encodeURIComponent(getSiteName(report))}`
+    );
   };
 
   // Helper functions for badges
@@ -276,7 +287,7 @@ export default function ReportList() {
           <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-sm rounded">
             Debug: Loaded {allSites.length} sites and {reports.length} reports
           </div> */}
-          
+
           {/* Header with Back Arrow for normal report list */}
           <div className="flex items-start gap-4 mb-8">
             {/* Back Arrow for normal report list (without siteId) */}
@@ -295,27 +306,26 @@ export default function ReportList() {
                 <FiArrowLeft className="text-lg" />
               </button>
             )}
-            
+
             <div className="flex-1 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-                  {siteName 
+                  {siteName
                     ? `Reports - ${decodeURIComponent(siteName)}`
-                    : user.role === 'Admin' 
-                      ? 'All QA Reports' 
-                      : 'My QA Reports'
-                  }
+                    : user.role === 'Admin'
+                      ? 'All QA Reports'
+                      : 'My QA Reports'}
                 </h1>
                 <p className="text-slate-600 dark:text-slate-400 mt-2">
                   Showing {reports.length} of {totalReports} report{totalReports !== 1 ? 's' : ''}
                 </p>
               </div>
-              
+
               <div className="flex flex-col md:flex-row items-center gap-4">
                 {/* Search Bar */}
                 <div className="relative w-full md:w-64">
                   <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
+                  <input
                     type="text"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
@@ -329,7 +339,7 @@ export default function ReportList() {
                   />
                 </div>
                 {/* Status Filter */}
-                <select 
+                <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="p-3 rounded-lg transition-all duration-200
@@ -344,9 +354,9 @@ export default function ReportList() {
                   <option value="Approved">Approved</option>
                   <option value="Rejected">Rejected</option>
                 </select>
-                
+
                 {/* Refresh Button */}
-                <button 
+                <button
                   onClick={fetchReports}
                   className="px-4 py-3 rounded-lg font-medium transition-all duration-200
                     bg-gradient-to-r from-yellow-500 to-yellow-600 
@@ -360,10 +370,10 @@ export default function ReportList() {
                   <FiRefreshCw className="mr-2" />
                   Refresh
                 </button>
-                
+
                 {/* Create Report Button for Engineers when viewing specific site */}
                 {user.role === 'Engineer' && siteId && (
-                  <Link 
+                  <Link
                     to={`/reports/create?site=${siteId}&siteName=${encodeURIComponent(siteName || 'Site')}`}
                     className="px-6 py-3 rounded-lg font-medium transition-all duration-200
                       bg-gradient-to-r from-yellow-500 to-yellow-600 
@@ -377,10 +387,10 @@ export default function ReportList() {
                     Create Report
                   </Link>
                 )}
-                
+
                 {/* Back to Sites Button when viewing specific site - Updated to navigate(-1) */}
                 {siteId && (
-                  <button 
+                  <button
                     onClick={() => navigate(-1)}
                     className="px-6 py-3 rounded-lg font-medium transition-all duration-200
                       bg-white dark:bg-slate-800 
@@ -401,26 +411,25 @@ export default function ReportList() {
 
           {/* Reports Table */}
           {reports.length === 0 ? (
-            <div className="p-8 text-center rounded-lg transition-all duration-300
+            <div
+              className="p-8 text-center rounded-lg transition-all duration-300
               bg-white dark:bg-slate-800 
               border border-slate-200 dark:border-slate-700 
-              shadow-lg">
-              <div className="text-slate-400 dark:text-slate-500 mb-4 text-6xl">
-                📋
-              </div>
+              shadow-lg"
+            >
+              <div className="text-slate-400 dark:text-slate-500 mb-4 text-6xl">📋</div>
               <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-2">
                 No Reports Found
               </h3>
               <p className="text-slate-600 dark:text-slate-400 mb-6">
-                {statusFilter !== 'All' 
-                  ? `No ${statusFilter.toLowerCase()} reports found.` 
+                {statusFilter !== 'All'
+                  ? `No ${statusFilter.toLowerCase()} reports found.`
                   : user.role === 'Engineer'
                     ? 'You have not created any reports yet.'
-                    : 'No reports available.'
-                }
+                    : 'No reports available.'}
               </p>
               <div className="flex justify-center gap-4">
-                <button 
+                <button
                   onClick={fetchReports}
                   className="px-6 py-3 rounded-lg font-medium transition-all duration-200
                     bg-gradient-to-r from-yellow-500 to-yellow-600 
@@ -434,8 +443,8 @@ export default function ReportList() {
                   Refresh
                 </button>
                 {user.role === 'Engineer' && !siteId && (
-                  <Link 
-                    to="/reports/create" 
+                  <Link
+                    to="/reports/create"
                     className="px-6 py-3 rounded-lg font-medium transition-all duration-200
                       bg-gradient-to-r from-yellow-500 to-yellow-600 
                       text-slate-900
@@ -451,10 +460,12 @@ export default function ReportList() {
               </div>
             </div>
           ) : (
-            <div className="p-6 transition-all duration-300
+            <div
+              className="p-6 transition-all duration-300
               bg-white dark:bg-slate-800 
               border border-slate-200 dark:border-slate-700 
-              rounded-lg shadow-lg">
+              rounded-lg shadow-lg"
+            >
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
@@ -491,25 +502,34 @@ export default function ReportList() {
                   </thead>
                   <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
                     {reports.map((report) => (
-                      <tr key={report._id || report.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <tr
+                        key={report._id || report.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
                             {report.title || 'Untitled Report'}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {report.description ? report.description.substring(0, 50) + '...' : 'No description'}
+                            {report.description
+                              ? report.description.substring(0, 50) + '...'
+                              : 'No description'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                           {report.materialTested || 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(report.status)}`}>
+                          <span
+                            className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(report.status)}`}
+                          >
                             {report.status}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getResultBadge(report.testResult)}`}>
+                          <span
+                            className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getResultBadge(report.testResult)}`}
+                          >
                             {report.testResult || 'N/A'}
                           </span>
                         </td>
@@ -524,11 +544,12 @@ export default function ReportList() {
                           </td>
                         )}
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                          {report.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'N/A'}
+                          {report.createdAt
+                            ? new Date(report.createdAt).toLocaleDateString()
+                            : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
-                            
                             {/* View Button - ALWAYS VISIBLE */}
                             <button
                               onClick={() => navigate(`/reports/${report._id || report.id}`)}
@@ -537,21 +558,23 @@ export default function ReportList() {
                             >
                               <i className="fas fa-eye text-sm"></i>
                             </button>
-                            
+
                             {/* Engineer-specific actions */}
                             {user.role === 'Engineer' && (
                               <>
                                 {/* Edit button for pending reports */}
                                 {report.status === 'Pending' && (
                                   <button
-                                    onClick={() => navigate(`/reports/${report._id || report.id}/edit`)}
+                                    onClick={() =>
+                                      navigate(`/reports/${report._id || report.id}/edit`)
+                                    }
                                     className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 transition-all duration-200"
                                     title="Edit Report"
                                   >
                                     <i className="fas fa-edit text-sm"></i>
                                   </button>
                                 )}
-                                
+
                                 {/* Re-create button for rejected reports */}
                                 {report.status === 'Rejected' && (
                                   <button
@@ -562,7 +585,7 @@ export default function ReportList() {
                                     <i className="fas fa-redo text-sm"></i>
                                   </button>
                                 )}
-                                
+
                                 {/* Delete button for engineer's own reports (pending only) */}
                                 {report.status === 'Pending' && (
                                   <button
@@ -575,21 +598,23 @@ export default function ReportList() {
                                 )}
                               </>
                             )}
-                            
+
                             {/* Admin-specific actions */}
                             {user.role === 'Admin' && (
                               <>
                                 {/* Review button for pending reports */}
                                 {report.status === 'Pending' && (
                                   <button
-                                    onClick={() => navigate(`/reports/${report._id || report.id}/review`)}
+                                    onClick={() =>
+                                      navigate(`/reports/${report._id || report.id}/review`)
+                                    }
                                     className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 transition-all duration-200"
                                     title="Review Report"
                                   >
                                     <i className="fas fa-clipboard-check text-sm"></i>
                                   </button>
                                 )}
-                                
+
                                 {/* Delete button for any report */}
                                 <button
                                   onClick={() => handleDeleteReport(report._id || report.id)}
@@ -607,17 +632,18 @@ export default function ReportList() {
                   </tbody>
                 </table>
               </div>
-              
+
               {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 dark:border-slate-700 pt-6">
                   <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    Page <span className="text-slate-900 dark:text-white font-bold">{page}</span> of <span className="text-slate-900 dark:text-white font-bold">{totalPages}</span>
+                    Page <span className="text-slate-900 dark:text-white font-bold">{page}</span> of{' '}
+                    <span className="text-slate-900 dark:text-white font-bold">{totalPages}</span>
                   </p>
-                  
+
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                      onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
                       disabled={page === 1}
                       className="p-2 rounded-lg transition-all duration-200
                         bg-white dark:bg-slate-900 
@@ -630,14 +656,14 @@ export default function ReportList() {
                       <FiChevronLeft className="mr-1" />
                       Prev
                     </button>
-                    
+
                     {/* Page Numbers */}
                     {[...Array(totalPages)].map((_, i) => {
                       const pageNum = i + 1;
                       // Only show a few page numbers around the current page
                       if (
-                        pageNum === 1 || 
-                        pageNum === totalPages || 
+                        pageNum === 1 ||
+                        pageNum === totalPages ||
                         (pageNum >= page - 1 && pageNum <= page + 1)
                       ) {
                         return (
@@ -657,13 +683,17 @@ export default function ReportList() {
                         (pageNum === 2 && page > 3) ||
                         (pageNum === totalPages - 1 && page < totalPages - 2)
                       ) {
-                        return <span key={pageNum} className="px-1 text-slate-400">...</span>;
+                        return (
+                          <span key={pageNum} className="px-1 text-slate-400">
+                            ...
+                          </span>
+                        );
                       }
                       return null;
                     })}
-                    
+
                     <button
-                      onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
+                      onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
                       disabled={page === totalPages}
                       className="p-2 rounded-lg transition-all duration-200
                         bg-white dark:bg-slate-900 
@@ -696,6 +726,8 @@ export default function ReportList() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
         </div>
       </div>
     </div>

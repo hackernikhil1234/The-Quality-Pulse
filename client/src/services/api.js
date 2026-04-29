@@ -3,9 +3,9 @@ import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
-  : (import.meta.env.PROD 
-      ? 'https://the-quality-pulse.onrender.com/api' 
-      : 'http://localhost:5000/api');
+  : import.meta.env.PROD
+    ? 'https://the-quality-pulse.onrender.com/api'
+    : 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -29,7 +29,7 @@ let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
-  failedQueue.forEach(prom => {
+  failedQueue.forEach((prom) => {
     if (error) prom.reject(error);
     else prom.resolve(token);
   });
@@ -44,17 +44,22 @@ api.interceptors.response.use(
     const url = originalRequest?.url || '';
 
     // Skip refresh logic for auth endpoints to prevent loops
-    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh-token');
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
+      url.includes('/auth/register') ||
+      url.includes('/auth/refresh-token');
 
     if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         // Queue up requests waiting for the new token
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        }).catch(err => Promise.reject(err));
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
@@ -62,7 +67,11 @@ api.interceptors.response.use(
 
       try {
         // Silent token refresh using the HttpOnly cookie
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh-token`, {}, { withCredentials: true });
+        const { data } = await axios.post(
+          `${BASE_URL}/auth/refresh-token`,
+          {},
+          { withCredentials: true }
+        );
         const newToken = data.token;
         localStorage.setItem('token', newToken);
         api.defaults.headers.common.Authorization = `Bearer ${newToken}`;

@@ -9,7 +9,7 @@ import { FaHardHat, FaCog, FaHammer } from 'react-icons/fa';
 export default function Navbar({ toggleSidebar }) {
   const { user, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
-  
+
   const [theme, setTheme] = useState(() => {
     // Get theme from localStorage or default to device preference
     const savedTheme = localStorage.getItem('theme');
@@ -27,15 +27,13 @@ export default function Navbar({ toggleSidebar }) {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  if (!user) return null;
 
   // Add the CSS styles to the document head
   useEffect(() => {
@@ -58,31 +56,35 @@ export default function Navbar({ toggleSidebar }) {
       }
     `;
     document.head.appendChild(style);
-    
+
     return () => {
       document.head.removeChild(style);
     };
   }, []);
+
+  if (!user) return null;
 
   return (
     <>
       {/* 1. ANIMATED SAFETY STRIPE TOP BAR */}
       <div className="h-1.5 w-full animate-hazard-stripes opacity-90 sticky top-0 z-50 border-b border-slate-900 shadow-sm"></div>
 
-      <nav 
+      <nav
         className={`sticky top-1.5 z-40 w-full transition-all duration-300 border-b ${
-          isScrolled 
-            ? 'bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md border-slate-300 dark:border-slate-700 shadow-md py-2' 
+          isScrolled
+            ? 'bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md border-slate-300 dark:border-slate-700 shadow-md py-2'
             : 'bg-white dark:bg-[#0f172a] border-slate-200 dark:border-slate-800 py-3'
         }`}
       >
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 transition-all">
-            
             {/* --- LEFT: BRANDING & TOOLS --- */}
             <div className="flex items-center gap-6">
               {/* Mobile Menu */}
-              <button onClick={toggleSidebar} className="lg:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={toggleSidebar}
+                className="lg:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700"
+              >
                 <FiMenu className="w-6 h-6" />
               </button>
 
@@ -95,10 +97,10 @@ export default function Navbar({ toggleSidebar }) {
                   </div>
                   {/* Rotating Gear */}
                   <div className="absolute -top-2 -right-2 text-slate-300 dark:text-slate-700 z-0">
-                     <FaCog className="w-8 h-8 animate-spin duration-[10000ms]" /> 
+                    <FaCog className="w-8 h-8 animate-spin duration-[10000ms]" />
                   </div>
                 </div>
-                
+
                 <div className="hidden md:flex flex-col z-10">
                   <h1 className="text-xl font-black tracking-tighter text-slate-900 dark:text-white leading-none font-mono flex items-center gap-2">
                     QUALITY<span className="text-yellow-500">PULSE</span>
@@ -114,17 +116,16 @@ export default function Navbar({ toggleSidebar }) {
 
             {/* --- RIGHT: CONTROL PANEL --- */}
             <div className="flex items-center gap-3 sm:gap-5">
-              
               {/* Theme Switch - Industrial Toggle Look */}
               <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-sm border border-slate-300 dark:border-slate-700 flex items-center shadow-inner">
-                <button 
-                  onClick={() => setTheme('light')} 
+                <button
+                  onClick={() => setTheme('light')}
                   className={`p-1.5 rounded-sm transition-all ${theme === 'light' ? 'bg-white shadow-sm text-yellow-600 border border-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   <FiSun className="w-4 h-4" />
                 </button>
-                <button 
-                  onClick={() => setTheme('dark')} 
+                <button
+                  onClick={() => setTheme('dark')}
                   className={`p-1.5 rounded-sm transition-all ${theme === 'dark' ? 'bg-slate-700 shadow-sm text-yellow-400 border border-slate-600' : 'text-slate-400 hover:text-slate-600'}`}
                 >
                   <FiMoon className="w-4 h-4" />
@@ -141,31 +142,32 @@ export default function Navbar({ toggleSidebar }) {
               {/* User ID Card */}
               <div className="flex items-center pl-4 border-l-2 border-slate-200 dark:border-slate-700 h-10">
                 <div className="flex items-center gap-4 group">
-                  
                   {/* Text Details */}
                   <div className="hidden md:flex flex-col items-end">
                     <span className="text-sm font-bold text-slate-800 dark:text-white leading-none group-hover:text-yellow-600 dark:group-hover:text-yellow-500 transition-colors font-mono uppercase">
                       {user.name}
                     </span>
                     <span className="text-[10px] font-mono font-medium text-slate-500 uppercase mt-1 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-sm border border-slate-300 dark:border-slate-600">
-                      ID: {user.role.substring(0,3).toUpperCase()}-8492
+                      ID: {user.role.substring(0, 3).toUpperCase()}-8492
                     </span>
                   </div>
 
                   {/* Avatar Container */}
                   <div className="relative">
                     <div className="h-10 w-10 bg-slate-900 dark:bg-slate-800 rounded-sm flex items-center justify-center text-white font-bold text-lg shadow-sm border border-slate-300 dark:border-slate-600 group-hover:border-yellow-500 transition-colors relative overflow-hidden">
-                      <span className="z-10 group-hover:text-yellow-500 transition-colors">{user.name.charAt(0).toUpperCase()}</span>
+                      <span className="z-10 group-hover:text-yellow-500 transition-colors">
+                        {user.name.charAt(0).toUpperCase()}
+                      </span>
                     </div>
                     {/* Role Icon Overlay */}
                     <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-slate-900 p-1 rounded-sm shadow-sm border border-white dark:border-slate-900 text-[8px] z-20">
-                        <FaHammer />
+                      <FaHammer />
                     </div>
                   </div>
 
                   {/* Logout - UPDATED: Matching Sidebar Colors (Slate/Gray) */}
-                  <button 
-                    onClick={logout} 
+                  <button
+                    onClick={logout}
                     className="ml-2 h-10 px-4 flex items-center gap-2 rounded-sm 
                       bg-slate-50 dark:bg-slate-800
                       text-slate-600 dark:text-slate-300 
@@ -176,7 +178,7 @@ export default function Navbar({ toggleSidebar }) {
                       transition-all duration-200 group/logout"
                     title="Terminate Session"
                   >
-                  <div className="relative">
+                    <div className="relative">
                       <FiPower className="w-4 h-4 font-bold" />
                       {/* LED indicator dot (Red for Power Off) */}
                       <div className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
@@ -187,7 +189,6 @@ export default function Navbar({ toggleSidebar }) {
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
         </div>

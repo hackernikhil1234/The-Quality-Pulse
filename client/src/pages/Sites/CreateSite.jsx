@@ -7,7 +7,18 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
-import { FaSearch, FaMapMarkerAlt, FaUser, FaCalendar, FaGlobe, FaCity, FaBuilding, FaFileAlt, FaLocationArrow, FaTimes } from 'react-icons/fa';
+import {
+  FaSearch,
+  FaMapMarkerAlt,
+  FaUser,
+  FaCalendar,
+  FaGlobe,
+  FaCity,
+  FaBuilding,
+  FaFileAlt,
+  FaLocationArrow,
+  FaTimes,
+} from 'react-icons/fa';
 import { FiArrowLeft } from 'react-icons/fi';
 
 // Fix Leaflet default icon
@@ -26,8 +37,56 @@ const customIcon = new L.Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 });
+
+// Location marker component
+function LocationMarker({ formData, setFormData, setAddressSearch }) {
+  useMapEvents({
+    click(e) {
+      const { lat, lng } = e.latlng;
+      setFormData((prev) => ({ ...prev, coordinates: { lat, lng } }));
+
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.display_name) {
+            setFormData((prev) => ({
+              ...prev,
+              exactAddress: data.display_name,
+              city: data.address.city || data.address.town || data.address.village || '',
+              country: data.address.country || '',
+            }));
+            setAddressSearch(data.display_name);
+          }
+        })
+        .catch((err) => {});
+    },
+  });
+
+  return formData.coordinates.lat ? (
+    <Marker position={[formData.coordinates.lat, formData.coordinates.lng]} icon={customIcon}>
+      <Popup>
+        Selected Location
+        <br />
+        Lat: {formData.coordinates.lat.toFixed(6)}
+        <br />
+        Lng: {formData.coordinates.lng.toFixed(6)}
+      </Popup>
+    </Marker>
+  ) : null;
+}
+
+// Map center component
+function MapCenter({ coordinates, city }) {
+  const map = useMap();
+  useEffect(() => {
+    if (coordinates.lat && coordinates.lng) {
+      map.setView([coordinates.lat, coordinates.lng], city ? 12 : 4);
+    }
+  }, [coordinates.lat, coordinates.lng, city, map]);
+  return null;
+}
 
 export default function CreateSite() {
   const [formData, setFormData] = useState({
@@ -41,7 +100,7 @@ export default function CreateSite() {
     assignedEngineers: [],
     type: 'Construction Site',
     status: 'Active',
-    progress: 0
+    progress: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -63,16 +122,22 @@ export default function CreateSite() {
   const [filteredCountries, setFilteredCountries] = useState([]);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [siteTypes] = useState([
-    'Construction Site', 
-    'Renovation Project', 
-    'Infrastructure', 
-    'Residential', 
-    'Commercial', 
-    'Industrial', 
-    'Civil', 
-    'Other'
+    'High-Rise Construction',
+    'Bridge & Overpass',
+    'Highway & Infrastructure',
+    'Industrial Plant',
+    'Tunnel & Underground',
+    'Dam & Waterworks',
+    'Airport & Hangar',
+    'Railway & Transit',
+    'Hospital & Healthcare',
+    'Energy & Power Plant',
+    'Residential Development',
+    'Commercial Building',
+    'Renovation Project',
+    'Other',
   ]);
-  
+
   const engineerDropdownRef = useRef(null);
   const cityDropdownRef = useRef(null);
   const addressDropdownRef = useRef(null);
@@ -81,8 +146,9 @@ export default function CreateSite() {
 
   // Load engineers
   useEffect(() => {
-    api.get('/auth/users?role=Engineer')
-      .then(res => {
+    api
+      .get('/auth/users?role=Engineer')
+      .then((res) => {
         setEngineers(res.data || []);
         setFilteredEngineers(res.data || []);
       })
@@ -92,19 +158,26 @@ export default function CreateSite() {
   // Load countries from REST Countries API
   useEffect(() => {
     fetch('https://restcountries.com/v3.1/all?fields=name,cca2')
-      .then(res => res.json())
-      .then(data => {
-        const countryList = data
-          .map(country => country.name.common)
-          .sort();
+      .then((res) => res.json())
+      .then((data) => {
+        const countryList = data.map((country) => country.name.common).sort();
         setCountries(countryList);
         setFilteredCountries(countryList);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('Failed to load countries:', err);
         const defaultCountries = [
-          'India', 'United States', 'United Kingdom', 'Canada', 'Australia',
-          'Germany', 'France', 'Japan', 'China', 'Brazil', 'Russia'
+          'India',
+          'United States',
+          'United Kingdom',
+          'Canada',
+          'Australia',
+          'Germany',
+          'France',
+          'Japan',
+          'China',
+          'Brazil',
+          'Russia',
         ];
         setCountries(defaultCountries);
         setFilteredCountries(defaultCountries);
@@ -115,35 +188,81 @@ export default function CreateSite() {
   useEffect(() => {
     if (formData.country) {
       setMapLoading(true);
-      fetch(`https://nominatim.openstreetmap.org/search?country=${encodeURIComponent(formData.country)}&format=json&featuretype=city&limit=30`)
-        .then(res => {
+      fetch(
+        `https://nominatim.openstreetmap.org/search?country=${encodeURIComponent(formData.country)}&format=json&featuretype=city&limit=30`
+      )
+        .then((res) => {
           if (!res.ok) throw new Error('Failed to fetch cities');
           return res.json();
         })
-        .then(data => {
+        .then((data) => {
           console.log('Cities data received:', data.length, 'items');
-          
+
           const citySet = new Set();
-          data.forEach(place => {
+          data.forEach((place) => {
             if (place.name && !place.name.match(/^\d/)) {
               citySet.add(place.name);
             }
           });
-          
+
           const cityArray = Array.from(citySet).sort();
-          
+
           setCities(cityArray);
           setFilteredCities(cityArray);
           setMapLoading(false);
         })
-        .catch(err => {
+        .catch((err) => {
           const fallbackCities = {
-            'India': ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Ahmedabad', 'Pune', 'Jaipur', 'Lucknow'],
-            'United States': ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose'],
-            'United Kingdom': ['London', 'Manchester', 'Birmingham', 'Liverpool', 'Glasgow', 'Edinburgh', 'Bristol', 'Leeds', 'Sheffield', 'Cardiff'],
-            'Canada': ['Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Ottawa', 'Edmonton', 'Winnipeg', 'Quebec City', 'Hamilton', 'Halifax']
+            India: [
+              'Mumbai',
+              'Delhi',
+              'Bangalore',
+              'Chennai',
+              'Kolkata',
+              'Hyderabad',
+              'Ahmedabad',
+              'Pune',
+              'Jaipur',
+              'Lucknow',
+            ],
+            'United States': [
+              'New York',
+              'Los Angeles',
+              'Chicago',
+              'Houston',
+              'Phoenix',
+              'Philadelphia',
+              'San Antonio',
+              'San Diego',
+              'Dallas',
+              'San Jose',
+            ],
+            'United Kingdom': [
+              'London',
+              'Manchester',
+              'Birmingham',
+              'Liverpool',
+              'Glasgow',
+              'Edinburgh',
+              'Bristol',
+              'Leeds',
+              'Sheffield',
+              'Cardiff',
+            ],
+            Canada: [
+              'Toronto',
+              'Vancouver',
+              'Montreal',
+              'Calgary',
+              'Ottawa',
+              'Edmonton',
+              'Winnipeg',
+              'Quebec City',
+              'Hamilton',
+              'Halifax',
+            ],
           };
-          
+
           const fallback = fallbackCities[formData.country] || [];
           setCities(fallback);
           setFilteredCities(fallback);
@@ -158,9 +277,10 @@ export default function CreateSite() {
   // Filter engineers based on search
   useEffect(() => {
     if (engineerSearch) {
-      const filtered = engineers.filter(engineer =>
-        engineer.name.toLowerCase().includes(engineerSearch.toLowerCase()) ||
-        engineer.email.toLowerCase().includes(engineerSearch.toLowerCase())
+      const filtered = engineers.filter(
+        (engineer) =>
+          engineer.name.toLowerCase().includes(engineerSearch.toLowerCase()) ||
+          engineer.email.toLowerCase().includes(engineerSearch.toLowerCase())
       );
       setFilteredEngineers(filtered);
     } else {
@@ -171,7 +291,7 @@ export default function CreateSite() {
   // Filter cities based on search
   useEffect(() => {
     if (citySearch && cities.length > 0) {
-      const filtered = cities.filter(city =>
+      const filtered = cities.filter((city) =>
         city.toLowerCase().includes(citySearch.toLowerCase())
       );
       setFilteredCities(filtered);
@@ -183,7 +303,7 @@ export default function CreateSite() {
   // Filter countries based on search
   useEffect(() => {
     if (countrySearch && countries.length > 0) {
-      const filtered = countries.filter(country =>
+      const filtered = countries.filter((country) =>
         country.toLowerCase().includes(countrySearch.toLowerCase())
       );
       setFilteredCountries(filtered);
@@ -234,12 +354,12 @@ export default function CreateSite() {
 
   // Select address from geocoding results
   const handleSelectAddress = (result) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       exactAddress: result.display_name,
       coordinates: { lat: parseFloat(result.lat), lng: parseFloat(result.lon) },
       city: result.address.city || result.address.town || result.address.village || '',
-      country: result.address.country || ''
+      country: result.address.country || '',
     }));
     setAddressSearch(result.display_name);
     setShowAddressResults(false);
@@ -248,11 +368,11 @@ export default function CreateSite() {
 
   // Handle country selection
   const handleSelectCountry = (country) => {
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData((prev) => ({
+      ...prev,
       country,
       city: '',
-      coordinates: { lat: 20.5937, lng: 78.9629 }
+      coordinates: { lat: 20.5937, lng: 78.9629 },
     }));
     setCountrySearch(country);
     setCitySearch('');
@@ -262,67 +382,21 @@ export default function CreateSite() {
   // Handle country input change
   const handleCountryInputChange = (value) => {
     setCountrySearch(value);
-    setFormData(prev => ({ ...prev, country: value }));
+    setFormData((prev) => ({ ...prev, country: value }));
     setShowCountryDropdown(true);
   };
-
-  // Location marker
-  function LocationMarker() {
-    useMapEvents({
-      click(e) {
-        const { lat, lng } = e.latlng;
-        setFormData(prev => ({ ...prev, coordinates: { lat, lng } }));
-        
-        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
-          .then(res => res.json())
-          .then(data => {
-            if (data.display_name) {
-              setFormData(prev => ({
-                ...prev,
-                exactAddress: data.display_name,
-                city: data.address.city || data.address.town || data.address.village || '',
-                country: data.address.country || ''
-              }));
-              setAddressSearch(data.display_name);
-            }
-          })
-          .catch(err => {});
-      },
-    });
-    
-    return formData.coordinates.lat ? (
-      <Marker position={[formData.coordinates.lat, formData.coordinates.lng]} icon={customIcon}>
-        <Popup>
-          Selected Location<br />
-          Lat: {formData.coordinates.lat.toFixed(6)}<br />
-          Lng: {formData.coordinates.lng.toFixed(6)}
-        </Popup>
-      </Marker>
-    ) : null;
-  }
-
-  // Map center
-  function MapCenter() {
-    const map = useMap();
-    useEffect(() => {
-      if (formData.coordinates.lat && formData.coordinates.lng) {
-        map.setView([formData.coordinates.lat, formData.coordinates.lng], formData.city ? 12 : 4);
-      }
-    }, [formData.coordinates.lat, formData.coordinates.lng, formData.city]);
-    return null;
-  }
 
   // Handle engineer selection
   const handleSelectEngineer = (engineerId) => {
     if (formData.assignedEngineers.includes(engineerId)) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        assignedEngineers: prev.assignedEngineers.filter(id => id !== engineerId)
+        assignedEngineers: prev.assignedEngineers.filter((id) => id !== engineerId),
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        assignedEngineers: [...prev.assignedEngineers, engineerId]
+        assignedEngineers: [...prev.assignedEngineers, engineerId],
       }));
     }
     setEngineerSearch('');
@@ -331,60 +405,60 @@ export default function CreateSite() {
 
   // Remove selected engineer
   const removeEngineer = (engineerId) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      assignedEngineers: prev.assignedEngineers.filter(id => id !== engineerId)
+      assignedEngineers: prev.assignedEngineers.filter((id) => id !== engineerId),
     }));
   };
 
   // Handle city selection - SIMPLIFIED VERSION
   const handleSelectCity = (city) => {
-    setFormData(prev => ({ ...prev, city }));
+    setFormData((prev) => ({ ...prev, city }));
     setCitySearch(city);
     setShowCityDropdown(false);
-    
-    const searchQuery = formData.country ? 
-      `city=${encodeURIComponent(city)}&country=${encodeURIComponent(formData.country)}` :
-      `city=${encodeURIComponent(city)}`;
-    
+
+    const searchQuery = formData.country
+      ? `city=${encodeURIComponent(city)}&country=${encodeURIComponent(formData.country)}`
+      : `city=${encodeURIComponent(city)}`;
+
     fetch(`https://nominatim.openstreetmap.org/search?${searchQuery}&format=json&limit=1`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.length > 0) {
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
-            coordinates: { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+            coordinates: { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) },
           }));
         }
       })
-      .catch(err => {});
+      .catch((err) => {});
   };
 
   // Handle city input change - SIMPLIFIED VERSION
   const handleCityInputChange = (value) => {
     setCitySearch(value);
-    setFormData(prev => ({ ...prev, city: value }));
+    setFormData((prev) => ({ ...prev, city: value }));
     setShowCityDropdown(true);
-    
+
     if (value.length > 2) {
       const timeoutId = setTimeout(() => {
-        const searchQuery = formData.country ? 
-          `city=${encodeURIComponent(value)}&country=${encodeURIComponent(formData.country)}` :
-          `city=${encodeURIComponent(value)}`;
-        
+        const searchQuery = formData.country
+          ? `city=${encodeURIComponent(value)}&country=${encodeURIComponent(formData.country)}`
+          : `city=${encodeURIComponent(value)}`;
+
         fetch(`https://nominatim.openstreetmap.org/search?${searchQuery}&format=json&limit=1`)
-          .then(res => res.json())
-          .then(data => {
+          .then((res) => res.json())
+          .then((data) => {
             if (data.length > 0) {
-              setFormData(prev => ({
+              setFormData((prev) => ({
                 ...prev,
-                coordinates: { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+                coordinates: { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) },
               }));
             }
           })
-          .catch(err => {});
+          .catch((err) => {});
       }, 1000);
-      
+
       return () => clearTimeout(timeoutId);
     }
   };
@@ -392,7 +466,7 @@ export default function CreateSite() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const siteData = {
         name: formData.name,
@@ -406,9 +480,9 @@ export default function CreateSite() {
         type: formData.type,
         status: formData.status,
         progress: formData.progress,
-        location: formData.exactAddress || `${formData.city}, ${formData.country}`
+        location: formData.exactAddress || `${formData.city}, ${formData.country}`,
       };
-      
+
       await api.post('/sites', siteData);
       toast.success('Site created successfully!');
       navigate('/sites');
@@ -420,16 +494,16 @@ export default function CreateSite() {
   };
 
   // Get selected engineer details
-  const selectedEngineers = formData.assignedEngineers.map(id => 
-    engineers.find(e => e._id === id)
-  ).filter(Boolean);
+  const selectedEngineers = formData.assignedEngineers
+    .map((id) => engineers.find((e) => e._id === id))
+    .filter(Boolean);
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
       <Sidebar />
       <div className="flex-1 overflow-x-hidden">
         <Navbar />
-        
+
         <div className="p-6 max-w-6xl mx-auto">
           {/* Header with Back Button */}
           <div className="mb-8">
@@ -447,7 +521,7 @@ export default function CreateSite() {
               >
                 <FiArrowLeft className="text-lg" />
               </button>
-              
+
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="bg-yellow-500 p-3 rounded-sm text-slate-900 shadow-[0_0_15px_rgba(234,179,8,0.4)]">
@@ -458,7 +532,8 @@ export default function CreateSite() {
                       Create New Construction Site
                     </h1>
                     <p className="text-slate-600 dark:text-slate-400 mt-2">
-                      Add a new construction site with location, assigned engineers, and project details
+                      Add a new construction site with location, assigned engineers, and project
+                      details
                     </p>
                   </div>
                 </div>
@@ -466,8 +541,8 @@ export default function CreateSite() {
             </div>
           </div>
 
-          <form 
-            onSubmit={handleSubmit} 
+          <form
+            onSubmit={handleSubmit}
             onMouseEnter={() => setIsFormHovered(true)}
             onMouseLeave={() => setIsFormHovered(false)}
             className={`space-y-6 transition-all duration-300 ${isFormHovered ? 'shadow-lg shadow-yellow-500/5' : ''}`}
@@ -479,8 +554,12 @@ export default function CreateSite() {
                   <FaBuilding className="text-xl text-slate-900" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Site Information</h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Basic site details and description</p>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    Site Information
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Basic site details and description
+                  </p>
                 </div>
               </div>
 
@@ -491,9 +570,9 @@ export default function CreateSite() {
                       <FaBuilding className="inline mr-2 text-yellow-500" />
                       Site Name *
                     </label>
-                    <input 
-                      value={formData.name} 
-                      onChange={e => setFormData({ ...formData, name: e.target.value })} 
+                    <input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full p-3 rounded-lg transition-all duration-200
                         bg-white dark:bg-slate-900 
                         border border-slate-300 dark:border-slate-600 
@@ -502,7 +581,7 @@ export default function CreateSite() {
                         focus:outline-none focus:border-yellow-500 dark:focus:border-yellow-500 
                         focus:ring-2 focus:ring-yellow-500/20 dark:focus:ring-yellow-500/30"
                       placeholder="Enter site name"
-                      required 
+                      required
                     />
                   </div>
 
@@ -511,9 +590,9 @@ export default function CreateSite() {
                       <FaBuilding className="inline mr-2 text-yellow-500" />
                       Site Type
                     </label>
-                    <select 
-                      value={formData.type} 
-                      onChange={e => setFormData({ ...formData, type: e.target.value })} 
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                       className="w-full p-3 rounded-lg transition-all duration-200
                         bg-white dark:bg-slate-900 
                         border border-slate-300 dark:border-slate-600 
@@ -521,8 +600,10 @@ export default function CreateSite() {
                         focus:outline-none focus:border-yellow-500 dark:focus:border-yellow-500 
                         focus:ring-2 focus:ring-yellow-500/20 dark:focus:ring-yellow-500/30"
                     >
-                      {siteTypes.map(type => (
-                        <option key={type} value={type}>{type}</option>
+                      {siteTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -533,9 +614,9 @@ export default function CreateSite() {
                     <FaFileAlt className="inline mr-2 text-yellow-500" />
                     Description
                   </label>
-                  <textarea 
-                    value={formData.description} 
-                    onChange={e => setFormData({ ...formData, description: e.target.value })} 
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full p-3 rounded-lg transition-all duration-200
                       bg-white dark:bg-slate-900 
                       border border-slate-300 dark:border-slate-600 
@@ -543,7 +624,7 @@ export default function CreateSite() {
                       placeholder:text-slate-400 dark:placeholder:text-slate-500
                       focus:outline-none focus:border-yellow-500 dark:focus:border-yellow-500 
                       focus:ring-2 focus:ring-yellow-500/20 dark:focus:ring-yellow-500/30"
-                    rows="3" 
+                    rows="3"
                     placeholder="Describe the site, project scope, and any important details..."
                   />
                 </div>
@@ -574,11 +655,11 @@ export default function CreateSite() {
                         />
                         <FaSearch className="absolute right-3 top-3.5 text-slate-400" />
                       </div>
-                      
+
                       {/* Country Suggestions Dropdown */}
                       {showCountryDropdown && filteredCountries.length > 0 && countrySearch && (
                         <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-auto">
-                          {filteredCountries.slice(0, 10).map(country => (
+                          {filteredCountries.slice(0, 10).map((country) => (
                             <div
                               key={country}
                               onClick={() => handleSelectCountry(country)}
@@ -586,7 +667,9 @@ export default function CreateSite() {
                             >
                               <div className="flex items-center gap-2">
                                 <FaGlobe className="text-yellow-500 flex-shrink-0" />
-                                <span className="text-slate-700 dark:text-slate-300 truncate">{country}</span>
+                                <span className="text-slate-700 dark:text-slate-300 truncate">
+                                  {country}
+                                </span>
                               </div>
                             </div>
                           ))}
@@ -620,35 +703,40 @@ export default function CreateSite() {
                             placeholder:text-slate-400 dark:placeholder:text-slate-500
                             focus:outline-none focus:border-yellow-500 dark:focus:border-yellow-500 
                             focus:ring-2 focus:ring-yellow-500/20 dark:focus:ring-yellow-500/30"
-                          placeholder={mapLoading ? "Loading cities..." : "Type city name..."}
+                          placeholder={mapLoading ? 'Loading cities...' : 'Type city name...'}
                           required
                           disabled={!formData.country || mapLoading}
                         />
                         <FaSearch className="absolute right-3 top-3.5 text-slate-400" />
                       </div>
-                      
+
                       {/* City Suggestions Dropdown */}
-                      {showCityDropdown && formData.country && filteredCities.length > 0 && citySearch && (
-                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-auto">
-                          {filteredCities.slice(0, 10).map(city => (
-                            <div
-                              key={city}
-                              onClick={() => handleSelectCity(city)}
-                              className="px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer transition-colors duration-150 border-b border-slate-200 dark:border-slate-600 last:border-b-0"
-                            >
-                              <div className="flex items-center gap-2">
-                                <FaMapMarkerAlt className="text-yellow-500 flex-shrink-0" />
-                                <span className="text-slate-700 dark:text-slate-300 truncate">{city}</span>
+                      {showCityDropdown &&
+                        formData.country &&
+                        filteredCities.length > 0 &&
+                        citySearch && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-auto">
+                            {filteredCities.slice(0, 10).map((city) => (
+                              <div
+                                key={city}
+                                onClick={() => handleSelectCity(city)}
+                                className="px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer transition-colors duration-150 border-b border-slate-200 dark:border-slate-600 last:border-b-0"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <FaMapMarkerAlt className="text-yellow-500 flex-shrink-0" />
+                                  <span className="text-slate-700 dark:text-slate-300 truncate">
+                                    {city}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                          {filteredCities.length > 10 && (
-                            <div className="px-4 py-2 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-600">
-                              {filteredCities.length - 10} more cities
-                            </div>
-                          )}
-                        </div>
-                      )}
+                            ))}
+                            {filteredCities.length > 10 && (
+                              <div className="px-4 py-2 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-600">
+                                {filteredCities.length - 10} more cities
+                              </div>
+                            )}
+                          </div>
+                        )}
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                       Type city name. The map will auto-adjust to the city location.
@@ -662,10 +750,10 @@ export default function CreateSite() {
                       <FaCalendar className="inline mr-2 text-yellow-500" />
                       Start Date
                     </label>
-                    <input 
-                      type="date" 
-                      value={formData.startDate} 
-                      onChange={e => setFormData({ ...formData, startDate: e.target.value })} 
+                    <input
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                       className="w-full p-3 rounded-lg transition-all duration-200
                         bg-white dark:bg-slate-900 
                         border border-slate-300 dark:border-slate-600 
@@ -680,9 +768,9 @@ export default function CreateSite() {
                       <FaBuilding className="inline mr-2 text-yellow-500" />
                       Site Status
                     </label>
-                    <select 
-                      value={formData.status} 
-                      onChange={e => setFormData({ ...formData, status: e.target.value })} 
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                       className="w-full p-3 rounded-lg transition-all duration-200
                         bg-white dark:bg-slate-900 
                         border border-slate-300 dark:border-slate-600 
@@ -712,7 +800,7 @@ export default function CreateSite() {
                         onChange={(e) => {
                           const value = e.target.value;
                           setAddressSearch(value);
-                          setFormData(prev => ({ ...prev, exactAddress: value }));
+                          setFormData((prev) => ({ ...prev, exactAddress: value }));
                           if (value.length > 2) {
                             handleAddressSearch(value);
                           }
@@ -733,7 +821,7 @@ export default function CreateSite() {
                       />
                       <FaSearch className="absolute right-3 top-3.5 text-slate-400" />
                     </div>
-                    
+
                     {showAddressResults && geocodingResults.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-auto">
                         {geocodingResults.map((result, index) => (
@@ -769,11 +857,13 @@ export default function CreateSite() {
                   <FaMapMarkerAlt className="text-xl text-slate-900" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Site Location Map</h2>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    Site Location Map
+                  </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {formData.city 
-                      ? `Map centered on ${formData.city}, ${formData.country}` 
-                      : "Click on the map to set coordinates or search for address above"}
+                    {formData.city
+                      ? `Map centered on ${formData.city}, ${formData.country}`
+                      : 'Click on the map to set coordinates or search for address above'}
                   </p>
                 </div>
               </div>
@@ -781,13 +871,17 @@ export default function CreateSite() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div className="p-3 bg-yellow-500/10 dark:bg-yellow-500/20 rounded-lg border border-yellow-500/20">
-                    <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Latitude</div>
+                    <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Latitude
+                    </div>
                     <div className="text-lg font-mono font-bold text-slate-900 dark:text-white">
                       {formData.coordinates.lat.toFixed(6)}
                     </div>
                   </div>
                   <div className="p-3 bg-yellow-500/10 dark:bg-yellow-500/20 rounded-lg border border-yellow-500/20">
-                    <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Longitude</div>
+                    <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Longitude
+                    </div>
                     <div className="text-lg font-mono font-bold text-slate-900 dark:text-white">
                       {formData.coordinates.lng.toFixed(6)}
                     </div>
@@ -795,8 +889,8 @@ export default function CreateSite() {
                 </div>
 
                 <div className="h-96 rounded-lg overflow-hidden border-2 border-slate-300 dark:border-slate-600">
-                  <MapContainer 
-                    center={[formData.coordinates.lat, formData.coordinates.lng]} 
+                  <MapContainer
+                    center={[formData.coordinates.lat, formData.coordinates.lng]}
                     zoom={formData.city ? 12 : 4}
                     style={{ height: '100%', width: '100%' }}
                     scrollWheelZoom={true}
@@ -805,15 +899,19 @@ export default function CreateSite() {
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
-                    <MapCenter />
-                    <LocationMarker />
+                    <MapCenter coordinates={formData.coordinates} city={formData.city} />
+                    <LocationMarker
+                      formData={formData}
+                      setFormData={setFormData}
+                      setAddressSearch={setAddressSearch}
+                    />
                   </MapContainer>
                 </div>
-                
+
                 <p className="text-sm text-slate-500 dark:text-slate-400 text-center pt-2">
-                  {formData.city 
+                  {formData.city
                     ? `📍 Map is centered on ${formData.city}, ${formData.country}. Click to adjust location.`
-                    : "💡 Enter a city above or click on the map to set the location."}
+                    : '💡 Enter a city above or click on the map to set the location.'}
                 </p>
               </div>
             </div>
@@ -825,7 +923,9 @@ export default function CreateSite() {
                   <FaUser className="text-xl text-slate-900" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Engineer Assignment</h2>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    Engineer Assignment
+                  </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
                     Search and assign engineers responsible for this site
                   </p>
@@ -861,13 +961,13 @@ export default function CreateSite() {
                   {showEngineerDropdown && (
                     <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-auto">
                       {filteredEngineers.length > 0 ? (
-                        filteredEngineers.map(engineer => (
+                        filteredEngineers.map((engineer) => (
                           <div
                             key={engineer._id}
                             onClick={() => handleSelectEngineer(engineer._id)}
                             className={`px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer transition-colors duration-150 border-b border-slate-200 dark:border-slate-600 last:border-b-0 ${
-                              formData.assignedEngineers.includes(engineer._id) 
-                                ? 'bg-yellow-500/10 dark:bg-yellow-500/20' 
+                              formData.assignedEngineers.includes(engineer._id)
+                                ? 'bg-yellow-500/10 dark:bg-yellow-500/20'
                                 : ''
                             }`}
                           >
@@ -948,8 +1048,8 @@ export default function CreateSite() {
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={loading}
                     className="px-8 py-3 rounded-lg font-medium transition-all duration-200
                       bg-gradient-to-r from-yellow-500 to-yellow-600 
@@ -963,9 +1063,25 @@ export default function CreateSite() {
                   >
                     {loading ? (
                       <>
-                        <svg className="animate-spin h-5 w-5 text-slate-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin h-5 w-5 text-slate-900"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         Creating Site...
                       </>

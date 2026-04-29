@@ -20,7 +20,9 @@ const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecret123');
-    req.user = await User.findById(decoded.id).select('-password -twoFactorSecret -twoFactorTempSecret');
+    req.user = await User.findById(decoded.id).select(
+      '-password -twoFactorSecret -twoFactorTempSecret'
+    );
     if (!req.user) return res.status(401).json({ message: 'User not found' });
     next();
   } catch (err) {
@@ -37,7 +39,7 @@ const authMiddleware = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
     token = req.headers.authorization.split(' ')[1];
   }
-  
+
   // Also check cookies
   if (!token && req.cookies.jwt) {
     token = req.cookies.jwt;
@@ -50,20 +52,20 @@ const authMiddleware = async (req, res, next) => {
   try {
     // Verify token - check both possible token structures
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecret123');
-    
+
     // Check if token has 'id' or 'user.id'
     const userId = decoded.id || (decoded.user && decoded.user.id);
-    
+
     if (!userId) {
       return res.status(401).json({ message: 'Invalid token structure' });
     }
-    
+
     req.user = await User.findById(userId).select('-password');
-    
+
     if (!req.user) {
       return res.status(401).json({ message: 'User not found' });
     }
-    
+
     next();
   } catch (err) {
     console.error('Auth middleware error:', err);
@@ -78,8 +80,8 @@ const authorize = (...roles) => {
       return res.status(401).json({ message: 'Not authorized' });
     }
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: `Access denied. Required role: ${roles.join(' or ')}` 
+      return res.status(403).json({
+        message: `Access denied. Required role: ${roles.join(' or ')}`,
       });
     }
     next();

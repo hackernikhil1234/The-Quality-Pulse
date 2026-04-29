@@ -5,7 +5,7 @@ const Notification = require('../models/Notification');
 const deleteNotification = async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);
-    
+
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
     }
@@ -16,16 +16,16 @@ const deleteNotification = async (req, res) => {
     }
 
     await notification.deleteOne();
-    
+
     res.json({
       success: true,
-      message: 'Notification deleted successfully'
+      message: 'Notification deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting notification:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: 'Failed to delete notification' 
+      message: 'Failed to delete notification',
     });
   }
 };
@@ -35,30 +35,30 @@ const clearAllNotifications = async (req, res) => {
   try {
     // Verify the user is deleting their own notifications
     if (req.params.userId !== req.user._id.toString()) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: 'Not authorized' 
+        message: 'Not authorized',
       });
     }
 
-    await Notification.deleteMany({ 
-      userId: req.user._id 
+    await Notification.deleteMany({
+      userId: req.user._id,
     });
-    
+
     res.json({
       success: true,
-      message: 'All notifications cleared successfully'
+      message: 'All notifications cleared successfully',
     });
   } catch (error) {
     console.error('Error clearing notifications:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: 'Failed to clear notifications' 
+      message: 'Failed to clear notifications',
     });
   }
 };
 
 module.exports = {
   deleteNotification,
-  clearAllNotifications
+  clearAllNotifications,
 };

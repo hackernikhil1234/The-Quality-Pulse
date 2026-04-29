@@ -6,32 +6,32 @@ const User = require('../models/User');
 // Create a new report
 const createReport = async (req, res) => {
   try {
-    const { 
-      site, 
-      title, 
-      materialTested, 
-      testResult, 
-      complianceStatus, 
-      description, 
-      findings, 
-      recommendations, 
-      comments, 
-      images, 
+    const {
+      site,
+      title,
+      materialTested,
+      testResult,
+      complianceStatus,
+      description,
+      findings,
+      recommendations,
+      comments,
+      images,
       location,
-      issues 
+      issues,
     } = req.body;
 
     // Validate required fields
     if (!site || !title || !materialTested || !testResult) {
-      return res.status(400).json({ 
-        message: 'Site, title, material tested, and test result are required' 
+      return res.status(400).json({
+        message: 'Site, title, material tested, and test result are required',
       });
     }
 
     // Check if user is an engineer
     if (req.user.role !== 'Engineer') {
-      return res.status(403).json({ 
-        message: 'Only engineers can create reports' 
+      return res.status(403).json({
+        message: 'Only engineers can create reports',
       });
     }
 
@@ -40,14 +40,14 @@ const createReport = async (req, res) => {
     if (!siteDoc) {
       return res.status(404).json({ message: 'Site not found' });
     }
-    
-    const isAssigned = siteDoc.assignedEngineers.some(engineerId => 
-      engineerId.toString() === req.user._id.toString()
+
+    const isAssigned = siteDoc.assignedEngineers.some(
+      (engineerId) => engineerId.toString() === req.user._id.toString()
     );
-    
+
     if (!isAssigned) {
-      return res.status(403).json({ 
-        message: 'You are not assigned to this site' 
+      return res.status(403).json({
+        message: 'You are not assigned to this site',
       });
     }
 
@@ -65,9 +65,9 @@ const createReport = async (req, res) => {
       location: location || null,
       issues: issues || [],
       inspector: req.user._id,
-      status: 'Pending'
+      status: 'Pending',
     });
-    
+
     await report.save();
 
     // Populate for response
@@ -81,11 +81,11 @@ const createReport = async (req, res) => {
       action: 'report_created',
       resourceType: 'Report',
       resourceId: report._id,
-      details: { 
+      details: {
         siteName: populatedReport.site?.name,
         reportTitle: title,
-        testResult: testResult
-      }
+        testResult: testResult,
+      },
     });
 
     // Notify admins about new report
@@ -94,18 +94,18 @@ const createReport = async (req, res) => {
       message: `New QA report submitted: ${title}`,
       reportId: report._id,
       siteId: site,
-      submittedBy: req.user.name
+      submittedBy: req.user.name,
     });
 
     res.status(201).json(populatedReport);
   } catch (err) {
     console.error('Report creation error:', err.message);
-    
+
     if (err.name === 'ValidationError') {
-      const messages = Object.values(err.errors).map(val => val.message);
+      const messages = Object.values(err.errors).map((val) => val.message);
       return res.status(400).json({ message: messages.join(', ') });
     }
-    
+
     res.status(500).json({ message: 'Failed to create report' });
   }
 };
@@ -116,12 +116,12 @@ const getReports = async (req, res) => {
     console.log('GET /reports called');
     console.log('User:', req.user);
     console.log('Query params:', req.query);
-    
+
     // Make sure user is authenticated
     if (!req.user) {
       return res.status(401).json({ message: 'Not authenticated' });
     }
-    
+
     const { site, status, inspector } = req.query;
     let query = {};
 
@@ -137,7 +137,7 @@ const getReports = async (req, res) => {
       }
     }
     // Viewer sees all reports (no filter)
-    
+
     // Additional filters
     if (site && site !== 'undefined' && site !== 'null') {
       // Check if site is a valid ObjectId
@@ -156,7 +156,7 @@ const getReports = async (req, res) => {
         }
       }
     }
-    
+
     if (status && status !== 'All' && status !== 'undefined' && status !== 'null') {
       query.status = status;
     }
@@ -173,72 +173,73 @@ const getReports = async (req, res) => {
 
     // Now manually populate site for each report
     // This handles both ObjectId and string site values
-    reports = await Promise.all(reports.map(async (report) => {
-      const reportObj = report.toObject();
-      
-      // Handle site population
-      if (report.site) {
-        if (typeof report.site === 'object' && report.site._id) {
-          // Site is already populated
-          reportObj.site = {
-            _id: report.site._id,
-            name: report.site.name,
-            location: report.site.location
-          };
-        } else if (typeof report.site === 'string') {
-          // Site is stored as a string (inconsistent data)
-          if (require('mongoose').Types.ObjectId.isValid(report.site)) {
-            // It's a valid ObjectId string, try to populate
-            const siteDoc = await Site.findById(report.site);
-            if (siteDoc) {
-              reportObj.site = {
-                _id: siteDoc._id,
-                name: siteDoc.name,
-                location: siteDoc.location
-              };
+    reports = await Promise.all(
+      reports.map(async (report) => {
+        const reportObj = report.toObject();
+
+        // Handle site population
+        if (report.site) {
+          if (typeof report.site === 'object' && report.site._id) {
+            // Site is already populated
+            reportObj.site = {
+              _id: report.site._id,
+              name: report.site.name,
+              location: report.site.location,
+            };
+          } else if (typeof report.site === 'string') {
+            // Site is stored as a string (inconsistent data)
+            if (require('mongoose').Types.ObjectId.isValid(report.site)) {
+              // It's a valid ObjectId string, try to populate
+              const siteDoc = await Site.findById(report.site);
+              if (siteDoc) {
+                reportObj.site = {
+                  _id: siteDoc._id,
+                  name: siteDoc.name,
+                  location: siteDoc.location,
+                };
+              } else {
+                // Site not found by ID, use string as name
+                reportObj.site = {
+                  _id: report.site,
+                  name: report.site,
+                  location: 'Unknown',
+                };
+              }
             } else {
-              // Site not found by ID, use string as name
-              reportObj.site = {
-                _id: report.site,
-                name: report.site,
-                location: 'Unknown'
-              };
-            }
-          } else {
-            // It's a site name string (like "Site A - Downtown")
-            // Try to find site by name
-            const siteDoc = await Site.findOne({ name: report.site });
-            if (siteDoc) {
-              reportObj.site = {
-                _id: siteDoc._id,
-                name: siteDoc.name,
-                location: siteDoc.location
-              };
-            } else {
-              // Site not found, use string as name
-              reportObj.site = {
-                _id: null,
-                name: report.site,
-                location: 'Unknown'
-              };
+              // It's a site name string (like "Site A - Downtown")
+              // Try to find site by name
+              const siteDoc = await Site.findOne({ name: report.site });
+              if (siteDoc) {
+                reportObj.site = {
+                  _id: siteDoc._id,
+                  name: siteDoc.name,
+                  location: siteDoc.location,
+                };
+              } else {
+                // Site not found, use string as name
+                reportObj.site = {
+                  _id: null,
+                  name: report.site,
+                  location: 'Unknown',
+                };
+              }
             }
           }
+        } else {
+          // No site reference
+          reportObj.site = {
+            _id: null,
+            name: 'Unknown Site',
+            location: 'Unknown',
+          };
         }
-      } else {
-        // No site reference
-        reportObj.site = {
-          _id: null,
-          name: 'Unknown Site',
-          location: 'Unknown'
-        };
-      }
-      
-      return reportObj;
-    }));
+
+        return reportObj;
+      })
+    );
 
     console.log(`Returning ${reports.length} reports`);
     res.json(reports);
-    
   } catch (err) {
     console.error('Error in getReports:', err);
     res.status(500).json({ message: 'Failed to fetch reports', error: err.message });
@@ -258,10 +259,12 @@ const getReportById = async (req, res) => {
     }
 
     // Check permissions
-    if (req.user.role === 'Engineer' && 
-        report.inspector._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ 
-        message: 'You can only view your own reports' 
+    if (
+      req.user.role === 'Engineer' &&
+      report.inspector._id.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        message: 'You can only view your own reports',
       });
     }
 
@@ -276,21 +279,21 @@ const getReportById = async (req, res) => {
 const updateReportStatus = async (req, res) => {
   try {
     const { status, reviewComment } = req.body;
-    
+
     if (!status || !['Approved', 'Rejected'].includes(status)) {
-      return res.status(400).json({ 
-        message: 'Valid status (Approved/Rejected) is required' 
+      return res.status(400).json({
+        message: 'Valid status (Approved/Rejected) is required',
       });
     }
 
     if (req.user.role !== 'Admin') {
-      return res.status(403).json({ 
-        message: 'Only admin can approve or reject reports' 
+      return res.status(403).json({
+        message: 'Only admin can approve or reject reports',
       });
     }
 
     const report = await Report.findById(req.params.id);
-    
+
     if (!report) {
       return res.status(404).json({ message: 'Report not found' });
     }
@@ -301,7 +304,7 @@ const updateReportStatus = async (req, res) => {
     report.reviewedAt = new Date();
     report.reviewComment = reviewComment || '';
     report.feedback = reviewComment || ''; // Keep for backward compatibility
-    
+
     await report.save();
 
     // Populate for response
@@ -317,10 +320,10 @@ const updateReportStatus = async (req, res) => {
       action,
       resourceType: 'Report',
       resourceId: req.params.id,
-      details: { 
+      details: {
         reportTitle: report.title,
-        reviewComment: reviewComment 
-      }
+        reviewComment: reviewComment,
+      },
     });
 
     // Notify the engineer
@@ -331,19 +334,19 @@ const updateReportStatus = async (req, res) => {
         reportId: report._id,
         status: report.status,
         reviewComment: report.reviewComment,
-        reviewedBy: req.user.name
+        reviewedBy: req.user.name,
       });
     }
 
     res.json(populatedReport);
   } catch (err) {
     console.error('Error updating report status:', err);
-    
+
     if (err.name === 'ValidationError') {
-      const messages = Object.values(err.errors).map(val => val.message);
+      const messages = Object.values(err.errors).map((val) => val.message);
       return res.status(400).json({ message: messages.join(', ') });
     }
-    
+
     res.status(500).json({ message: 'Failed to update report status' });
   }
 };
@@ -351,22 +354,22 @@ const updateReportStatus = async (req, res) => {
 // Update report (for engineer to edit their own reports)
 const updateReport = async (req, res) => {
   try {
-    const { 
-      title, 
-      materialTested, 
-      testResult, 
-      complianceStatus, 
-      description, 
-      findings, 
-      recommendations, 
-      comments, 
-      images, 
+    const {
+      title,
+      materialTested,
+      testResult,
+      complianceStatus,
+      description,
+      findings,
+      recommendations,
+      comments,
+      images,
       location,
-      issues 
+      issues,
     } = req.body;
-    
+
     const report = await Report.findById(req.params.id);
-    
+
     if (!report) {
       return res.status(404).json({ message: 'Report not found' });
     }
@@ -375,15 +378,15 @@ const updateReport = async (req, res) => {
     if (req.user.role === 'Engineer') {
       // Engineers can only update their own reports
       if (report.inspector.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ 
-          message: 'You can only update your own reports' 
+        return res.status(403).json({
+          message: 'You can only update your own reports',
         });
       }
-      
+
       // Engineers can only update Pending or Rejected reports
       if (!['Pending', 'Rejected'].includes(report.status)) {
-        return res.status(403).json({ 
-          message: 'You can only update pending or rejected reports' 
+        return res.status(403).json({
+          message: 'You can only update pending or rejected reports',
         });
       }
 
@@ -394,12 +397,13 @@ const updateReport = async (req, res) => {
       report.complianceStatus = complianceStatus || report.complianceStatus;
       report.description = description !== undefined ? description : report.description;
       report.findings = findings !== undefined ? findings : report.findings;
-      report.recommendations = recommendations !== undefined ? recommendations : report.recommendations;
+      report.recommendations =
+        recommendations !== undefined ? recommendations : report.recommendations;
       report.comments = comments !== undefined ? comments : report.comments;
       report.images = images || report.images;
       report.location = location || report.location;
       report.issues = issues || report.issues;
-      
+
       // If report was Rejected, change status back to Pending when updated
       if (report.status === 'Rejected') {
         report.status = 'Pending';
@@ -408,7 +412,6 @@ const updateReport = async (req, res) => {
         report.reviewComment = '';
         report.feedback = '';
       }
-      
     } else if (req.user.role === 'Admin') {
       // Admins can update any field except inspector
       if (title) report.title = title;
@@ -438,10 +441,10 @@ const updateReport = async (req, res) => {
       action: 'report_updated',
       resourceType: 'Report',
       resourceId: req.params.id,
-      details: { 
+      details: {
         reportTitle: report.title,
-        updatedBy: req.user.role 
-      }
+        updatedBy: req.user.role,
+      },
     });
 
     // If engineer updated a rejected report, notify admin
@@ -451,19 +454,19 @@ const updateReport = async (req, res) => {
         message: `Report "${report.title}" has been updated and re-submitted`,
         reportId: report._id,
         siteId: report.site,
-        submittedBy: req.user.name
+        submittedBy: req.user.name,
       });
     }
 
     res.json(populatedReport);
   } catch (err) {
     console.error('Error updating report:', err);
-    
+
     if (err.name === 'ValidationError') {
-      const messages = Object.values(err.errors).map(val => val.message);
+      const messages = Object.values(err.errors).map((val) => val.message);
       return res.status(400).json({ message: messages.join(', ') });
     }
-    
+
     res.status(500).json({ message: 'Failed to update report' });
   }
 };
@@ -472,16 +475,15 @@ const updateReport = async (req, res) => {
 const deleteReport = async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
-    
+
     if (!report) {
       return res.status(404).json({ message: 'Report not found' });
     }
 
     // Check permissions
-    if (req.user.role === 'Engineer' && 
-        report.inspector.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ 
-        message: 'You can only delete your own reports' 
+    if (req.user.role === 'Engineer' && report.inspector.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: 'You can only delete your own reports',
       });
     }
 
@@ -493,7 +495,7 @@ const deleteReport = async (req, res) => {
       action: 'report_deleted',
       resourceType: 'Report',
       resourceId: req.params.id,
-      details: { reportTitle: report.title }
+      details: { reportTitle: report.title },
     });
 
     res.json({ message: 'Report deleted successfully' });
@@ -507,7 +509,7 @@ const deleteReport = async (req, res) => {
 const getReportsBySite = async (req, res) => {
   try {
     const { siteId } = req.params;
-    
+
     // Verify site exists
     const site = await Site.findById(siteId);
     if (!site) {
@@ -516,8 +518,8 @@ const getReportsBySite = async (req, res) => {
 
     // Check permissions - only admin can see all reports for a site
     if (req.user.role !== 'Admin') {
-      return res.status(403).json({ 
-        message: 'Only admin can view all reports for a site' 
+      return res.status(403).json({
+        message: 'Only admin can view all reports for a site',
       });
     }
 
@@ -530,9 +532,9 @@ const getReportsBySite = async (req, res) => {
       site: {
         name: site.name,
         location: site.location,
-        status: site.status
+        status: site.status,
       },
-      reports
+      reports,
     });
   } catch (err) {
     console.error('Error fetching reports by site:', err);
@@ -544,10 +546,10 @@ const getReportsBySite = async (req, res) => {
 const getMySiteReports = async (req, res) => {
   try {
     const { siteId } = req.params;
-    
+
     if (req.user.role !== 'Engineer') {
-      return res.status(403).json({ 
-        message: 'Only engineers can view their site reports' 
+      return res.status(403).json({
+        message: 'Only engineers can view their site reports',
       });
     }
 
@@ -556,20 +558,20 @@ const getMySiteReports = async (req, res) => {
     if (!site) {
       return res.status(404).json({ message: 'Site not found' });
     }
-    
-    const isAssigned = site.assignedEngineers.some(engineerId => 
-      engineerId.toString() === req.user._id.toString()
+
+    const isAssigned = site.assignedEngineers.some(
+      (engineerId) => engineerId.toString() === req.user._id.toString()
     );
-    
+
     if (!isAssigned) {
-      return res.status(403).json({ 
-        message: 'You are not assigned to this site' 
+      return res.status(403).json({
+        message: 'You are not assigned to this site',
       });
     }
 
-    const reports = await Report.find({ 
-      site: siteId, 
-      inspector: req.user._id 
+    const reports = await Report.find({
+      site: siteId,
+      inspector: req.user._id,
     })
       .populate('site', 'name location')
       .populate('reviewedBy', 'name email')
@@ -582,13 +584,13 @@ const getMySiteReports = async (req, res) => {
   }
 };
 
-module.exports = { 
-  createReport, 
-  getReports, 
+module.exports = {
+  createReport,
+  getReports,
   getReportById,
   updateReportStatus,
-  updateReport, 
+  updateReport,
   deleteReport,
   getReportsBySite,
-  getMySiteReports
+  getMySiteReports,
 };

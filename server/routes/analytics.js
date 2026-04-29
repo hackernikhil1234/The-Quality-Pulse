@@ -7,12 +7,12 @@ const User = require('../models/User');
 // Helper function to group by date
 const groupByDate = (reports, timeRange) => {
   const groups = {};
-  
+
   // Generate all possible dates in the range
   const now = new Date();
   let startDate = new Date();
-  
-  switch(timeRange) {
+
+  switch (timeRange) {
     case 'day':
       // Last 24 hours in 3-hour intervals
       for (let i = 0; i < 8; i++) {
@@ -21,7 +21,7 @@ const groupByDate = (reports, timeRange) => {
       }
       startDate.setDate(now.getDate() - 1);
       break;
-    case 'week':
+    case 'week': {
       // Last 7 days
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       for (let i = 6; i >= 0; i--) {
@@ -31,16 +31,30 @@ const groupByDate = (reports, timeRange) => {
       }
       startDate.setDate(now.getDate() - 7);
       break;
+    }
     case 'month':
       // Last 30 days in weekly intervals
       for (let i = 3; i >= 0; i--) {
-        groups[`Week ${4-i}`] = { reports: [], compliant: [] };
+        groups[`Week ${4 - i}`] = { reports: [], compliant: [] };
       }
       startDate.setMonth(now.getMonth() - 1);
       break;
-    case 'year':
+    case 'year': {
       // Last 12 months
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       for (let i = 11; i >= 0; i--) {
         const date = new Date();
         date.setMonth(date.getMonth() - i);
@@ -48,32 +62,35 @@ const groupByDate = (reports, timeRange) => {
       }
       startDate.setFullYear(now.getFullYear() - 1);
       break;
+    }
   }
 
   // Group reports by date
-  reports.forEach(report => {
+  reports.forEach((report) => {
     const date = new Date(report.createdAt);
     let key;
-    
-    switch(timeRange) {
-      case 'day':
+
+    switch (timeRange) {
+      case 'day': {
         const hour = Math.floor(date.getHours() / 3) * 3;
         key = `${hour.toString().padStart(2, '0')}:00`;
         break;
+      }
       case 'week':
         key = date.toLocaleDateString('en-US', { weekday: 'short' });
         break;
-      case 'month':
+      case 'month': {
         const weekNum = Math.floor(date.getDate() / 7) + 1;
         key = `Week ${Math.min(weekNum, 4)}`;
         break;
+      }
       case 'year':
         key = date.toLocaleDateString('en-US', { month: 'short' });
         break;
       default:
         key = date.toLocaleDateString();
     }
-    
+
     if (groups[key]) {
       groups[key].reports.push(report);
       if (report.complianceStatus === 'Compliant') {
@@ -81,15 +98,16 @@ const groupByDate = (reports, timeRange) => {
       }
     }
   });
-  
+
   // Convert to array format
-  return Object.keys(groups).map(key => ({
+  return Object.keys(groups).map((key) => ({
     date: key,
     month: key,
     reports: groups[key].reports.length,
-    compliance: groups[key].reports.length > 0 
-      ? Math.round((groups[key].compliant.length / groups[key].reports.length) * 100)
-      : 0
+    compliance:
+      groups[key].reports.length > 0
+        ? Math.round((groups[key].compliant.length / groups[key].reports.length) * 100)
+        : 0,
   }));
 };
 
@@ -97,12 +115,12 @@ const groupByDate = (reports, timeRange) => {
 router.get('/', async (req, res) => {
   try {
     const { timeRange = 'month' } = req.query;
-    
+
     // Calculate date range
     const now = new Date();
     let startDate = new Date();
-    
-    switch(timeRange) {
+
+    switch (timeRange) {
       case 'day':
         startDate.setDate(now.getDate() - 1);
         break;
@@ -121,37 +139,35 @@ router.get('/', async (req, res) => {
 
     // Get all reports in the time range
     const reports = await Report.find({
-      createdAt: { $gte: startDate, $lte: now }
+      createdAt: { $gte: startDate, $lte: now },
     })
-    .populate('site')
-    .populate('inspector')
-    .populate('createdBy');
+      .populate('site')
+      .populate('inspector')
+      .populate('createdBy');
 
     // Get all sites and engineers
     const sites = await Site.find();
     const engineers = await User.find({ role: 'Engineer' });
 
     // Calculate compliance rate
-    const compliantReports = reports.filter(r => r.complianceStatus === 'Compliant');
-    const complianceRate = reports.length > 0 
-      ? Math.round((compliantReports.length / reports.length) * 100) 
-      : 0;
+    const compliantReports = reports.filter((r) => r.complianceStatus === 'Compliant');
+    const complianceRate =
+      reports.length > 0 ? Math.round((compliantReports.length / reports.length) * 100) : 0;
 
     // Calculate pass/fail rates
-    const passReports = reports.filter(r => r.testResult === 'Pass');
-    const failReports = reports.filter(r => r.testResult === 'Fail');
-    const passRate = reports.length > 0 
-      ? Math.round((passReports.length / reports.length) * 100) 
-      : 0;
+    const passReports = reports.filter((r) => r.testResult === 'Pass');
+    const failReports = reports.filter((r) => r.testResult === 'Fail');
+    const passRate =
+      reports.length > 0 ? Math.round((passReports.length / reports.length) * 100) : 0;
     const failRate = 100 - passRate;
 
     // Get report status counts
-    const pendingReports = reports.filter(r => r.status === 'Pending').length;
-    const approvedReports = reports.filter(r => r.status === 'Approved').length;
-    const rejectedReports = reports.filter(r => r.status === 'Rejected').length;
+    const pendingReports = reports.filter((r) => r.status === 'Pending').length;
+    const approvedReports = reports.filter((r) => r.status === 'Approved').length;
+    const rejectedReports = reports.filter((r) => r.status === 'Rejected').length;
 
     // Calculate average resolution time (in days)
-    const resolvedReports = reports.filter(r => r.status !== 'Pending');
+    const resolvedReports = reports.filter((r) => r.status !== 'Pending');
     let avgResolutionTime = 0;
     if (resolvedReports.length > 0) {
       const totalTime = resolvedReports.reduce((sum, report) => {
@@ -163,60 +179,69 @@ router.get('/', async (req, res) => {
     }
 
     // Site performance analysis - REAL DATA
-    const sitePerformance = await Promise.all(sites.map(async (site) => {
-      const siteReports = reports.filter(r => 
-        r.site && r.site._id && r.site._id.toString() === site._id.toString()
-      );
-      const siteCompliant = siteReports.filter(r => r.complianceStatus === 'Compliant');
-      const compliance = siteReports.length > 0 
-        ? Math.round((siteCompliant.length / siteReports.length) * 100) 
-        : 0;
-      
-      return {
-        site: site.name || site.siteName || `Site ${site._id.toString().substring(0, 6)}`,
-        compliance,
-        reports: siteReports.length
-      };
-    }));
+    const sitePerformance = await Promise.all(
+      sites.map(async (site) => {
+        const siteReports = reports.filter(
+          (r) => r.site && r.site._id && r.site._id.toString() === site._id.toString()
+        );
+        const siteCompliant = siteReports.filter((r) => r.complianceStatus === 'Compliant');
+        const compliance =
+          siteReports.length > 0
+            ? Math.round((siteCompliant.length / siteReports.length) * 100)
+            : 0;
+
+        return {
+          site: site.name || site.siteName || `Site ${site._id.toString().substring(0, 6)}`,
+          compliance,
+          reports: siteReports.length,
+        };
+      })
+    );
 
     // Filter out sites with no reports and sort by compliance
     const filteredSitePerformance = sitePerformance
-      .filter(site => site.reports > 0)
+      .filter((site) => site.reports > 0)
       .sort((a, b) => b.compliance - a.compliance)
       .slice(0, 5); // Top 5
 
     // Engineer performance - REAL DATA
-    const engineerPerformance = await Promise.all(engineers.map(async (engineer) => {
-      const engineerReports = reports.filter(r => 
-        r.inspector && r.inspector._id && r.inspector._id.toString() === engineer._id.toString()
-      );
-      const compliantEngineerReports = engineerReports.filter(r => r.complianceStatus === 'Compliant');
-      const compliance = engineerReports.length > 0 
-        ? Math.round((compliantEngineerReports.length / engineerReports.length) * 100) 
-        : 0;
-      
-      return {
-        engineer: engineer.name || engineer.email,
-        reports: engineerReports.length,
-        compliance
-      };
-    }));
+    const engineerPerformance = await Promise.all(
+      engineers.map(async (engineer) => {
+        const engineerReports = reports.filter(
+          (r) =>
+            r.inspector && r.inspector._id && r.inspector._id.toString() === engineer._id.toString()
+        );
+        const compliantEngineerReports = engineerReports.filter(
+          (r) => r.complianceStatus === 'Compliant'
+        );
+        const compliance =
+          engineerReports.length > 0
+            ? Math.round((compliantEngineerReports.length / engineerReports.length) * 100)
+            : 0;
+
+        return {
+          engineer: engineer.name || engineer.email,
+          reports: engineerReports.length,
+          compliance,
+        };
+      })
+    );
 
     // Filter out engineers with no reports and sort by number of reports
     const filteredEngineerPerformance = engineerPerformance
-      .filter(engineer => engineer.reports > 0)
+      .filter((engineer) => engineer.reports > 0)
       .sort((a, b) => b.reports - a.reports)
       .slice(0, 5); // Top 5
 
     // Material compliance analysis - REAL DATA
     // Group reports by material tested
     const materialGroups = {};
-    reports.forEach(report => {
+    reports.forEach((report) => {
       const material = report.materialTested || 'Unknown Material';
       if (!materialGroups[material]) {
         materialGroups[material] = {
           totalTests: 0,
-          passTests: 0
+          passTests: 0,
         };
       }
       materialGroups[material].totalTests++;
@@ -226,22 +251,25 @@ router.get('/', async (req, res) => {
     });
 
     // Convert to array and calculate pass rates
-    const materialCompliance = Object.keys(materialGroups).map(material => {
-      const data = materialGroups[material];
-      return {
-        material,
-        totalTests: data.totalTests,
-        passRate: Math.round((data.passTests / data.totalTests) * 100)
-      };
-    }).sort((a, b) => b.totalTests - a.totalTests).slice(0, 5); // Top 5 materials
+    const materialCompliance = Object.keys(materialGroups)
+      .map((material) => {
+        const data = materialGroups[material];
+        return {
+          material,
+          totalTests: data.totalTests,
+          passRate: Math.round((data.passTests / data.totalTests) * 100),
+        };
+      })
+      .sort((a, b) => b.totalTests - a.totalTests)
+      .slice(0, 5); // Top 5 materials
 
     // Generate REAL trend data from actual reports
     const trendData = groupByDate(reports, timeRange);
-    
+
     // For empty periods, provide empty arrays
     const trends = {
       daily: timeRange === 'day' ? trendData : [],
-      monthly: timeRange === 'month' || timeRange === 'year' ? trendData : []
+      monthly: timeRange === 'month' || timeRange === 'year' ? trendData : [],
     };
 
     res.json({
@@ -258,14 +286,13 @@ router.get('/', async (req, res) => {
       trends,
       sitePerformance: filteredSitePerformance,
       engineerPerformance: filteredEngineerPerformance,
-      materialCompliance
+      materialCompliance,
     });
-
   } catch (error) {
     console.error('Analytics error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch analytics data',
-      details: error.message 
+      details: error.message,
     });
   }
 });

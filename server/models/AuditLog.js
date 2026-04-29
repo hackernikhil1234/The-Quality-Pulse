@@ -5,7 +5,7 @@ const auditLogSchema = new mongoose.Schema({
   action: { type: String, required: true },
   resourceType: String,
   resourceId: String,
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model('AuditLog', auditLogSchema);

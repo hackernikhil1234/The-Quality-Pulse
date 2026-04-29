@@ -10,7 +10,7 @@ router.get('/', protect, async (req, res) => {
     const skip = (page - 1) * limit;
 
     let query = {};
-    
+
     // Non-admin users only see their own logs
     if (req.user.role !== 'Admin') {
       query.userId = req.user._id;
@@ -28,8 +28,8 @@ router.get('/', protect, async (req, res) => {
       pagination: {
         total,
         page,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (err) {
     console.error('Audit log error:', err);

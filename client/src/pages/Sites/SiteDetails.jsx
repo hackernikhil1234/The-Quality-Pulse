@@ -21,7 +21,7 @@ import {
   FaFileAlt,
   FaPhone,
   FaEnvelope,
-  FaUserTie
+  FaUserTie,
 } from 'react-icons/fa';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
@@ -67,7 +67,7 @@ export default function SiteDetails() {
   }, [id, navigate]);
 
   const getStatusColor = (status) => {
-    switch(status?.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case 'active':
       case 'completed':
       case 'compliant':
@@ -94,7 +94,7 @@ export default function SiteDetails() {
       return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
       });
     } catch (error) {
       return 'Invalid Date';
@@ -123,7 +123,9 @@ export default function SiteDetails() {
             <div className="flex items-center justify-center h-96">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto"></div>
-                <div className="mt-4 text-slate-600 dark:text-slate-400">Loading site details...</div>
+                <div className="mt-4 text-slate-600 dark:text-slate-400">
+                  Loading site details...
+                </div>
               </div>
             </div>
           </div>
@@ -141,8 +143,12 @@ export default function SiteDetails() {
           <div className="p-6">
             <div className="text-center py-12">
               <FaBuilding className="text-4xl text-slate-400 dark:text-slate-600 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-slate-800 dark:text-white">Site not found</h2>
-              <p className="text-slate-600 dark:text-slate-400 mt-2">The site you're looking for doesn't exist or you don't have access.</p>
+              <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
+                Site not found
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400 mt-2">
+                The site you're looking for doesn't exist or you don't have access.
+              </p>
               <button
                 onClick={handleBack}
                 className="mt-4 px-4 py-2 rounded-lg font-medium transition-all duration-200
@@ -167,7 +173,7 @@ export default function SiteDetails() {
       <Sidebar />
       <div className="flex-1 overflow-hidden">
         <Navbar />
-        
+
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -186,10 +192,12 @@ export default function SiteDetails() {
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Site Details</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">View site information and reports</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  View site information and reports
+                </p>
               </div>
             </div>
-            
+
             {/* Only show Submit Report button when site is Active */}
             {user.role === 'Engineer' && site.status === 'Active' && (
               <button
@@ -221,12 +229,16 @@ export default function SiteDetails() {
                         <FaBuilding className="text-xl" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{site.name}</h2>
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                          {site.name}
+                        </h2>
                         <p className="text-slate-600 dark:text-slate-400">{site.location}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 mt-2">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(site.status)}`}>
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(site.status)}`}
+                      >
                         {site.status || 'Active'}
                       </span>
                       <span className="text-sm text-slate-600 dark:text-slate-400">
@@ -257,7 +269,9 @@ export default function SiteDetails() {
                       <FaCalendarAlt className="text-yellow-500" />
                       <span className="font-medium">Expected Completion</span>
                     </div>
-                    <p className="text-slate-800 dark:text-white">{formatDate(site.expectedCompletion)}</p>
+                    <p className="text-slate-800 dark:text-white">
+                      {formatDate(site.expectedCompletion)}
+                    </p>
                   </div>
 
                   {/* Created By */}
@@ -284,8 +298,12 @@ export default function SiteDetails() {
                 {/* Description */}
                 {site.description && (
                   <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-3">Description</h3>
-                    <p className="text-slate-600 dark:text-slate-400 whitespace-pre-line">{site.description}</p>
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-3">
+                      Description
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-400 whitespace-pre-line">
+                      {site.description}
+                    </p>
                   </div>
                 )}
 
@@ -298,9 +316,14 @@ export default function SiteDetails() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {site.materialSpecifications.map((spec, index) => (
-                        <div key={index} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div
+                          key={index}
+                          className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700"
+                        >
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium text-slate-800 dark:text-white">{spec.material || 'Material'}</h4>
+                            <h4 className="font-medium text-slate-800 dark:text-white">
+                              {spec.material || 'Material'}
+                            </h4>
                             <span className="text-sm px-2 py-1 bg-yellow-500/10 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 rounded">
                               {spec.grade ? `Grade ${spec.grade}` : 'Standard'}
                             </span>
@@ -309,7 +332,9 @@ export default function SiteDetails() {
                             {spec.quantity && (
                               <div className="flex items-center gap-2">
                                 <FaRulerCombined className="text-xs" />
-                                <span>Quantity: {spec.quantity} {spec.unit || 'units'}</span>
+                                <span>
+                                  Quantity: {spec.quantity} {spec.unit || 'units'}
+                                </span>
                               </div>
                             )}
                             {spec.supplier && (
@@ -338,7 +363,7 @@ export default function SiteDetails() {
                   <FaClipboardCheck className="text-yellow-500" />
                   Recent Reports
                 </h3>
-                
+
                 {reportsLoading ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
@@ -367,15 +392,19 @@ export default function SiteDetails() {
                             </div>
                           </div>
                           <div className="flex flex-col items-end gap-1">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(report.status)}`}>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(report.status)}`}
+                            >
                               {report.status || 'Pending'}
                             </span>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(report.complianceStatus)}`}>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(report.complianceStatus)}`}
+                            >
                               {report.complianceStatus || 'Unknown'}
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                           {report.materialTested && (
                             <div className="text-slate-600 dark:text-slate-400">
@@ -389,16 +418,18 @@ export default function SiteDetails() {
                           )}
                           {report.testResult?.overallScore && (
                             <div className="text-slate-600 dark:text-slate-400">
-                              <span className="font-medium">Score:</span> {report.testResult.overallScore}/10
+                              <span className="font-medium">Score:</span>{' '}
+                              {report.testResult.overallScore}/10
                             </div>
                           )}
                           {report.submittedBy && (
                             <div className="text-slate-600 dark:text-slate-400">
-                              <span className="font-medium">By:</span> {report.submittedBy?.name || 'Engineer'}
+                              <span className="font-medium">By:</span>{' '}
+                              {report.submittedBy?.name || 'Engineer'}
                             </div>
                           )}
                         </div>
-                        
+
                         {report.notes && (
                           <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
                             <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
@@ -412,7 +443,9 @@ export default function SiteDetails() {
                 ) : (
                   <div className="text-center py-8">
                     <FaFileAlt className="text-3xl text-slate-400 dark:text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-600 dark:text-slate-400">No reports submitted for this site yet</p>
+                    <p className="text-slate-600 dark:text-slate-400">
+                      No reports submitted for this site yet
+                    </p>
                     {/* Only show "Submit first report" when site is Active */}
                     {user.role === 'Engineer' && site.status === 'Active' && (
                       <button
@@ -438,7 +471,10 @@ export default function SiteDetails() {
                 {site.assignedEngineers && site.assignedEngineers.length > 0 ? (
                   <div className="space-y-4">
                     {site.assignedEngineers.map((engineer) => (
-                      <div key={engineer._id} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <div
+                        key={engineer._id}
+                        className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700"
+                      >
                         <div className="flex items-center gap-3 mb-2">
                           <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full flex items-center justify-center">
                             <span className="text-slate-900 font-bold">
@@ -446,8 +482,12 @@ export default function SiteDetails() {
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-slate-800 dark:text-white truncate">{engineer.name}</h4>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{engineer.email}</p>
+                            <h4 className="font-medium text-slate-800 dark:text-white truncate">
+                              {engineer.name}
+                            </h4>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
+                              {engineer.email}
+                            </p>
                           </div>
                         </div>
                         <div className="space-y-1 text-sm">
@@ -482,17 +522,21 @@ export default function SiteDetails() {
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">Total Reports</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Total Reports
+                      </span>
                       <span className="font-medium text-slate-800 dark:text-white">
                         {reports.length}
                       </span>
                     </div>
                     {/* Removed the progress bar for total reports */}
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">Compliance Rate</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Compliance Rate
+                      </span>
                       <span className="font-medium text-green-600 dark:text-green-400">
                         {site.complianceRate || '0%'}
                       </span>
@@ -500,17 +544,18 @@ export default function SiteDetails() {
                     <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                       <div
                         className="bg-green-500 h-2 rounded-full transition-all duration-1000"
-                        style={{ 
-                          width: site.complianceRate ? 
-                            `${parseInt(site.complianceRate)}%` : '0%' 
+                        style={{
+                          width: site.complianceRate ? `${parseInt(site.complianceRate)}%` : '0%',
                         }}
                       ></div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">Quality Score</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Quality Score
+                      </span>
                       <span className="font-medium text-blue-600 dark:text-blue-400">
                         {site.qualityScore || '0/10'}
                       </span>
@@ -518,17 +563,20 @@ export default function SiteDetails() {
                     <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                       <div
                         className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-1000"
-                        style={{ 
-                          width: site.qualityScore ? 
-                            `${(parseFloat(site.qualityScore.split('/')[0]) / 10) * 100}%` : '0%' 
+                        style={{
+                          width: site.qualityScore
+                            ? `${(parseFloat(site.qualityScore.split('/')[0]) / 10) * 100}%`
+                            : '0%',
                         }}
                       ></div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">Project Progress</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Project Progress
+                      </span>
                       <span className="font-medium text-yellow-600 dark:text-yellow-400">
                         {site.progress || 0}%
                       </span>
@@ -545,7 +593,9 @@ export default function SiteDetails() {
 
               {/* Quick Actions */}
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Quick Actions</h3>
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
+                  Quick Actions
+                </h3>
                 <div className="space-y-3">
                   {/* Only show Submit New Report button when site is Active */}
                   {user.role === 'Engineer' && site.status === 'Active' && (
@@ -563,7 +613,7 @@ export default function SiteDetails() {
                       Submit New Report
                     </button>
                   )}
-                  
+
                   <button
                     onClick={() => navigate(`/reports?site=${id}`)}
                     className="w-full p-3 rounded-lg font-medium transition-all duration-200
@@ -578,7 +628,7 @@ export default function SiteDetails() {
                     <FaClipboardCheck />
                     View All Reports
                   </button>
-                  
+
                   {user.role === 'Admin' && (
                     <button
                       onClick={() => navigate(`/sites/edit/${site._id}`)}

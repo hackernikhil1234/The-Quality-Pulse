@@ -37,10 +37,13 @@ const logger = winston.createLogger({
 });
 
 // Since Render captures standard console logs, always add a simple console transport
-logger.add(new winston.transports.Console({
-  format: process.env.NODE_ENV === 'development' ? 
-      winston.format.combine(winston.format.colorize(), winston.format.simple()) :
-      winston.format.combine(winston.format.simple())
-}));
+logger.add(
+  new winston.transports.Console({
+    format:
+      process.env.NODE_ENV === 'development'
+        ? winston.format.combine(winston.format.colorize(), winston.format.simple())
+        : winston.format.combine(winston.format.simple()),
+  })
+);
 
 module.exports = logger;
